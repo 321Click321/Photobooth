@@ -78,15 +78,21 @@ multiBtn.addEventListener('click', () => {
   function takeNext() {
     if (shot < 3) {
       startCountdown(3, () => {
-        const img = takePhoto();
-        photos.push(img);
+        // Capture image as dataURL instead of <img>
+        const context = canvas.getContext('2d');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const dataURL = canvas.toDataURL('image/png');
+        photos.push(dataURL);
+
         shot++;
         takeNext();
       });
     } else {
-      // Compose layout AFTER all photos are taken
+      // Compose layout AFTER all photos are captured
       const layout = document.createElement('canvas');
-      layout.width = 1200;  // 4x6 ratio (portrait)
+      layout.width = 1200;  // 4x6 portrait
       layout.height = 1800;
       const ctx = layout.getContext('2d');
 
@@ -97,38 +103,13 @@ multiBtn.addEventListener('click', () => {
       // Place each photo one by one
       const photoHeight = layout.height / photos.length;
 
-      photos.forEach((img, i) => {
-        ctx.drawImage(img, 0, i * photoHeight, layout.width, photoHeight);
-      });
-
-      // Final output
-      const finalImg = document.createElement('img');
-      finalImg.src = layout.toDataURL('image/png');
-      showDownloadPrint(finalImg);
-    }
-  }
-
-  takeNext();
-});
-      // Compose layout
-      const layout = document.createElement('canvas');
-      layout.width = 1200;  // 4x6 ratio (landscape)
-      layout.height = 1800; // scaled for print clarity
-      const ctx = layout.getContext('2d');
-
-      // Fill background white
-      ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, layout.width, layout.height);
-
-      // Place photos vertically
-      const photoHeight = layout.height / 3;
-      photos.forEach((img, i) => {
+      photos.forEach((src, i) => {
         const image = new Image();
-        image.src = img.src;
+        image.src = src;
         image.onload = () => {
           ctx.drawImage(image, 0, i * photoHeight, layout.width, photoHeight);
 
-          // Once last image is placed, show download/print
+          // Only finish after last one is drawn
           if (i === photos.length - 1) {
             const finalImg = document.createElement('img');
             finalImg.src = layout.toDataURL('image/png');
