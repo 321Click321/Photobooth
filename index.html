@@ -1,49 +1,63 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Photo Booth</title>
-  <link rel="stylesheet" href="styles.css">
-  <script defer src="app.js"></script>
-  <link rel="manifest" href="manifest.json">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>321Click Photo Booth</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
 </head>
 <body>
-  <div class="booth">
+  <main class="booth" role="main" style="padding:16px;max-width:900px;margin:0 auto;text-align:center;">
     <h1>📸 321Click Photo Booth</h1>
-    <video id="video" autoplay playsinline></video>
-    <div>
-  <button id="single">Single Photo</button>
-  <button id="multi">Multi-Photo Session</button>
-</div>
-<div id="countdown" style="font-size:48px; margin:20px; display:none;"></div>
-    <canvas id="canvas" style="display:none;"></canvas>
-    <div id="output"></div>
+
+    <div class="controls" style="margin:12px 0;">
+      <button id="single">Single Photo</button>
+      <button id="multi">Multi-Photo Session</button>
+      <button id="retake" style="display:none">Retake</button>
+    </div>
+
+    <div id="countdown" style="font-size:72px; font-weight:700; color:#222; display:none; margin:10px 0;"></div>
+
+    <div style="display:flex;flex-direction:column;align-items:center;gap:12px;">
+      <video id="video" autoplay playsinline muted style="width:100%;max-width:640px;border-radius:10px;background:#000;"></video>
+      <canvas id="canvas" style="display:none;"></canvas>
+      <div id="output" style="width:100%;max-width:640px;"></div>
+    </div>
+
+    <p style="color:#666;font-size:0.95rem;margin-top:12px;">
+      Tip: add to Home Screen for fullscreen mode (Share → Add to Home Screen).
+    </p>
+  </main>
+
+  <!-- semi-hidden admin unlock button (tap to open admin panel) -->
+  <button id="adminUnlock"
+          style="position:fixed; bottom:12px; right:12px; opacity:0.25; z-index:9999; padding:6px 10px; border-radius:6px;">
+    Admin
+  </button>
+
+  <!-- admin panel (hidden until unlocked) -->
+  <div id="adminPanel" style="display:none; position:fixed; left:12px; top:12px; background:#fff; border:1px solid #ddd; padding:12px; z-index:9999; max-width:320px;">
+    <h3 style="margin:0 0 8px 0;">Admin Settings</h3>
+    <label for="numShots">Number of photos per session:</label>
+    <input type="number" id="numShots" value="4" min="1" max="6" style="width:64px;margin-left:8px;">
+    <br/><br/>
+    <label for="countdownTime">Countdown (s):</label>
+    <input type="number" id="countdownTime" value="3" min="1" max="10" style="width:64px;margin-left:8px;">
+    <br/><br/>
+    <button id="closeAdmin">Close</button>
   </div>
+
+  <script src="app.js" defer></script>
+
+  <!-- register service worker (placed at end so DOM exists) -->
   <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js')
-      .then(reg => console.log('Service Worker registered:', reg))
-      .catch(err => console.log('Service Worker error:', err));
-  }
-</script>
-  <div id="adminPanel" style="display:none; margin-top:20px;">
-  <h3>Admin Settings</h3>
-  <label for="numShots">Number of photos per session:</label>
-  <input type="number" id="numShots" value="4" min="1" max="6">
-</div>
-  <button id="adminUnlock" style="position:fixed; bottom:10px; right:10px; opacity:0.2;">
-  Admin
-</button>
-
-<div id="adminPanel" style="display:none; margin-top:20px;">
-  <h3>Admin Settings</h3>
-
-  <label for="numShots">Number of photos per session:</label>
-  <input type="number" id="numShots" value="4" min="1" max="6">
-  <br><br>
-
-  <label for="countdownTime">Countdown (seconds):</label>
-  <input type="number" id="countdownTime" value="3" min="1" max="10">
-</div>
-
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => console.log('Service Worker registered:', reg))
+        .catch(err => console.log('Service Worker error:', err));
+    }
+  </script>
+</body>
+</html>
