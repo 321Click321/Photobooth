@@ -1,3 +1,5 @@
+let totalShots = 4;     // default number of photos
+let countdownTime = 3;  // default countdown seconds
 let totalShots = 4; // default value
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
