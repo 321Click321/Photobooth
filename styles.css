@@ -1,34 +1,27 @@
-body {
-  font-family: Arial, sans-serif;
-  text-align: center;
-  background: #f9f9f9;
-  margin: 0;
-  padding: 0;
+:root{
+  --bg:#f7f7f8; --card:#fff; --accent:#0b6cff; --muted:#666;
 }
+*{box-sizing:border-box}
+body{font-family:system-ui, -apple-system, "Segoe UI", Roboto, Arial; margin:0;background:var(--bg);color:#111}
+main.booth{max-width:900px;margin:0 auto;padding:16px}
+header h1{margin:0 0 12px 0;font-size:1.4rem;text-align:center}
+.controls{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:center;margin-bottom:8px}
+.mode-buttons .btn{margin-right:8px}
+.btn{padding:8px 12px;border-radius:8px;border:1px solid #ddd;background:#fff;color:#111;font-size:15px;cursor:pointer}
+.btn.primary{background:var(--accent);color:#fff;border:none}
+.toolbar{display:flex;gap:8px;align-items:center}
+.countdown{position:fixed;left:50%;top:18%;transform:translateX(-50%);font-size:96px;font-weight:800;color:#222;display:none;z-index:9999}
+.camera-area{display:flex;justify-content:center;margin:12px 0}
+video#video{width:100%;max-width:720px;height:auto;border-radius:10px;background:#000;box-shadow:0 8px 18px rgba(0,0,0,0.08)}
+.output{max-width:720px;margin:12px auto;display:flex;flex-direction:column;gap:12px;align-items:center}
+.output img{max-width:100%;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,0.06)}
+.hint{color:var(--muted);text-align:center;font-size:0.9rem;margin-top:8px}
 
-.booth {
-  margin-top: 20px;
-}
-
-video {
-  width: 80%;
-  border: 2px solid #333;
-  border-radius: 10px;
-}
-
-button, a {
-  display: inline-block;
-  margin: 10px;
-  padding: 10px 20px;
-  font-size: 16px;
-  border: none;
-  border-radius: 8px;
-  background: #007bff;
-  color: white;
-  text-decoration: none;
-  cursor: pointer;
-}
-
-button:hover, a:hover {
-  background: #0056b3;
-}
+/* admin UI */
+.admin-unlock{position:fixed;bottom:12px;right:12px;opacity:0.25;border-radius:8px;padding:8px;background:#fff;border:1px solid #ddd;z-index:9998}
+.admin-panel{display:none;position:fixed;left:12px;top:12px;background:#fff;border:1px solid #ddd;padding:12px;z-index:9999;width:320px;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,0.08)}
+.admin-panel h3{margin:0 0 8px 0}
+.admin-panel label{display:block;margin:8px 0;font-size:0.95rem}
+.admin-actions{display:flex;gap:8px;justify-content:space-between;margin-top:8px}
+.logo-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.admin-note{font-size:0.82rem;color:var(--muted);margin-top:8px}
