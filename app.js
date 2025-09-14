@@ -127,3 +127,19 @@ multiBtn.addEventListener('click', () => {
 
   takeNext();
 });
+// Admin simple password (example: 1234)
+const adminPassword = "1234";
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "a") { // press 'a' to unlock admin
+    const entered = prompt("Enter admin password:");
+    if (entered === adminPassword) {
+      document.getElementById("adminPanel").style.display = "block";
+    }
+  }
+});
+
+// Listen for number change
+document.getElementById("numShots").addEventListener("change", (e) => {
+  totalShots = parseInt(e.target.value, 10);
+});
