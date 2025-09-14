@@ -66,7 +66,9 @@ function startCountdown(seconds, callback) {
 
 // Single photo
 singleBtn.addEventListener('click', () => {
-  startCountdown(3, () => {
+  startCountdown(countdownTime, () => {
+   ...
+});
     const img = takePhoto();
     showDownloadPrint(img);
   });
@@ -80,7 +82,9 @@ multiBtn.addEventListener('click', () => {
 
   function takeNext() {
     if (shot < totalShots) {  // uses global value
-      startCountdown(3, () => {
+    startCountdown(countdownTime, () => {
+   ...
+});
         const context = canvas.getContext('2d');
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
