@@ -138,7 +138,11 @@ document.getElementById("adminUnlock").addEventListener("click", () => {
   }
 });
 
-// Listen for number change
+// Update settings
 document.getElementById("numShots").addEventListener("change", (e) => {
   totalShots = parseInt(e.target.value, 10);
+});
+
+document.getElementById("countdownTime").addEventListener("change", (e) => {
+  countdownTime = parseInt(e.target.value, 10);
 });
