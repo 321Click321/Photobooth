@@ -9,54 +9,94 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
 </head>
 <body>
-  <main class="booth" role="main" style="padding:16px;max-width:900px;margin:0 auto;text-align:center;">
-    <h1>📸 321Click Photo Booth</h1>
+  <main class="booth" role="main">
+    <header>
+      <h1>📸 321Click Photo Booth</h1>
+    </header>
 
-    <div class="controls" style="margin:12px 0;">
-      <button id="single">Single Photo</button>
-      <button id="multi">Multi-Photo Session</button>
-      <button id="retake" style="display:none">Retake</button>
-    </div>
+    <section class="controls">
+      <div class="mode-buttons">
+        <button id="single" class="btn">Single Photo</button>
+        <button id="multi" class="btn primary">Multi-Photo Session</button>
+      </div>
 
-    <div id="countdown" style="font-size:72px; font-weight:700; color:#222; display:none; margin:10px 0;"></div>
+      <div class="toolbar">
+        <label for="templateSelect">Template:</label>
+        <select id="templateSelect">
+          <option value="strip">Strip (4-up, portrait)</option>
+          <option value="grid">2×2 Grid</option>
+          <option value="single4x6">Single 4×6</option>
+        </select>
 
-    <div style="display:flex;flex-direction:column;align-items:center;gap:12px;">
-      <video id="video" autoplay playsinline muted style="width:100%;max-width:640px;border-radius:10px;background:#000;"></video>
-      <canvas id="canvas" style="display:none;"></canvas>
-      <div id="output" style="width:100%;max-width:640px;"></div>
-    </div>
+        <button id="retake" class="btn" style="display:none">Retake</button>
+      </div>
+    </section>
 
-    <p style="color:#666;font-size:0.95rem;margin-top:12px;">
-      Tip: add to Home Screen for fullscreen mode (Share → Add to Home Screen).
-    </p>
+    <div id="countdown" class="countdown" aria-hidden="true"></div>
+
+    <section class="camera-area">
+      <video id="video" autoplay playsinline muted></video>
+      <canvas id="captureCanvas" style="display:none"></canvas>
+    </section>
+
+    <section id="output" class="output"></section>
+
+    <footer class="hint">
+      <p>Add to Home Screen for full-screen experience (Share → Add to Home Screen).</p>
+    </footer>
   </main>
 
-  <!-- semi-hidden admin unlock button (tap to open admin panel) -->
-  <button id="adminUnlock"
-          style="position:fixed; bottom:12px; right:12px; opacity:0.25; z-index:9999; padding:6px 10px; border-radius:6px;">
-    Admin
-  </button>
+  <!-- semi-hidden admin unlock -->
+  <button id="adminUnlock" class="admin-unlock" aria-label="admin unlock">⚙️</button>
 
-  <!-- admin panel (hidden until unlocked) -->
-  <div id="adminPanel" style="display:none; position:fixed; left:12px; top:12px; background:#fff; border:1px solid #ddd; padding:12px; z-index:9999; max-width:320px;">
-    <h3 style="margin:0 0 8px 0;">Admin Settings</h3>
-    <label for="numShots">Number of photos per session:</label>
-    <input type="number" id="numShots" value="4" min="1" max="6" style="width:64px;margin-left:8px;">
-    <br/><br/>
-    <label for="countdownTime">Countdown (s):</label>
-    <input type="number" id="countdownTime" value="3" min="1" max="10" style="width:64px;margin-left:8px;">
-    <br/><br/>
-    <button id="closeAdmin">Close</button>
-  </div>
+  <!-- admin panel -->
+  <aside id="adminPanel" class="admin-panel" aria-hidden="true">
+    <h3>Admin Settings</h3>
+    <label>Number of shots:
+      <input type="number" id="numShots" value="4" min="1" max="6">
+    </label>
+    <label>Countdown (s):
+      <input type="number" id="countdownTime" value="3" min="1" max="10">
+    </label>
+    <label>Template:
+      <select id="adminTemplate">
+        <option value="strip">Strip (4-up)</option>
+        <option value="grid">2×2</option>
+        <option value="single4x6">Single 4×6</option>
+      </select>
+    </label>
+    <label>Logo (optional):
+      <input type="file" id="logoUpload" accept="image/*">
+    </label>
+    <div class="logo-controls">
+      <label>Logo scale (%) <input id="logoScale" type="range" min="10" max="100" value="25"></label>
+      <label>Logo pos:
+        <select id="logoPos">
+          <option value="bottom-right">Bottom Right</option>
+          <option value="bottom-left">Bottom Left</option>
+          <option value="top-right">Top Right</option>
+          <option value="top-left">Top Left</option>
+        </select>
+      </label>
+    </div>
 
-  <script src="app.js" defer></script>
+    <div class="admin-actions">
+      <button id="saveSettings" class="btn">Save</button>
+      <button id="closeAdmin" class="btn">Close</button>
+    </div>
 
-  <!-- register service worker (placed at end so DOM exists) -->
+    <p class="admin-note">Admin password: <strong>1234</strong></p>
+    <p class="admin-note">Tip: upload a transparent PNG logo for best print results.</p>
+  </aside>
+
+  <script defer src="app.js"></script>
+
+  <!-- service worker registration -->
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js')
-        .then(reg => console.log('Service Worker registered:', reg))
-        .catch(err => console.log('Service Worker error:', err));
+        .then(r => console.log('SW reg', r.scope))
+        .catch(e => console.log('SW failed', e));
     }
   </script>
 </body>
