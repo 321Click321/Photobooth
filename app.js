@@ -15,12 +15,21 @@ async function startCamera() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ video: true });
     video.srcObject = stream;
+
+    // Wait until video metadata is loaded (important for Safari/iPad)
+    return new Promise((resolve) => {
+      video.onloadedmetadata = () => {
+        video.play();
+        resolve();
+      };
+    });
   } catch (err) {
     console.error("Camera error:", err);
     alert("Could not access camera. Please allow camera permissions.");
   }
 }
-startCamera();
+
+startCamera().then(() => console.log("Camera ready"));
 
 // ------------------ Countdown ------------------
 function startCountdown(seconds, onComplete) {
@@ -42,9 +51,13 @@ function startCountdown(seconds, onComplete) {
 // ------------------ Capture Photo ------------------
 function capturePhoto() {
   const context = canvas.getContext("2d");
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  context.drawImage(video, 0, 0, canvas.width, canvas.height);
+  const w = video.videoWidth || 640;
+  const h = video.videoHeight || 480;
+
+  canvas.width = w;
+  canvas.height = h;
+  context.drawImage(video, 0, 0, w, h);
+
   return canvas.toDataURL("image/png");
 }
 
@@ -60,10 +73,10 @@ function displaySinglePhoto(imgData) {
 
 function displayCollage(images) {
   output.innerHTML = "";
+
   const rows = 2;
   const cols = Math.ceil(images.length / rows);
 
-  // Create a collage canvas
   const collage = document.createElement("canvas");
   const ctx = collage.getContext("2d");
   const w = 640;
@@ -71,20 +84,27 @@ function displayCollage(images) {
   collage.width = cols * w;
   collage.height = rows * h;
 
+  let loadedCount = 0;
+
   images.forEach((imgData, i) => {
     const img = new Image();
     img.src = imgData;
-    const x = (i % cols) * w;
-    const y = Math.floor(i / cols) * h;
-    img.onload = () => ctx.drawImage(img, x, y, w, h);
-  });
+    img.onload = () => {
+      const x = (i % cols) * w;
+      const y = Math.floor(i / cols) * h;
+      ctx.drawImage(img, x, y, w, h);
 
-  const finalImg = document.createElement("img");
-  finalImg.src = collage.toDataURL("image/png");
-  finalImg.style.maxWidth = "100%";
-  finalImg.style.border = "2px solid #333";
-  finalImg.style.borderRadius = "8px";
-  output.appendChild(finalImg);
+      loadedCount++;
+      if (loadedCount === images.length) {
+        const finalImg = document.createElement("img");
+        finalImg.src = collage.toDataURL("image/png");
+        finalImg.style.maxWidth = "100%";
+        finalImg.style.border = "2px solid #333";
+        finalImg.style.borderRadius = "8px";
+        output.appendChild(finalImg);
+      }
+    };
+  });
 }
 
 // ------------------ Button Actions ------------------
