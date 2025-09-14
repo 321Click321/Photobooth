@@ -1,3 +1,4 @@
+let totalShots = 4; // default value
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
 const output = document.getElementById('output');
@@ -74,7 +75,7 @@ multiBtn.addEventListener('click', () => {
   output.innerHTML = '';
   let photos = [];
   let shot = 0;
-  const totalShots = 4; // now 4 instead of 3
+// use global setting
 
   function takeNext() {
     if (shot < totalShots) {
