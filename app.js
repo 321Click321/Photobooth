@@ -122,3 +122,18 @@ multiBtn.addEventListener('click', () => {
 
   takeNext();
 });
+// Admin simple password (press "a" to open settings)
+const adminPassword = "1234";
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "a") {
+    const entered = prompt("Enter admin password:");
+    if (entered === adminPassword) {
+      document.getElementById("adminPanel").style.display = "block";
+    }
+  }
+});
+
+document.getElementById("numShots").addEventListener("change", (e) => {
+  totalShots = parseInt(e.target.value, 10);
+});
