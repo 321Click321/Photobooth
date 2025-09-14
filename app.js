@@ -84,6 +84,32 @@ multiBtn.addEventListener('click', () => {
         takeNext();
       });
     } else {
+      // Compose layout AFTER all photos are taken
+      const layout = document.createElement('canvas');
+      layout.width = 1200;  // 4x6 ratio (portrait)
+      layout.height = 1800;
+      const ctx = layout.getContext('2d');
+
+      // White background
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, layout.width, layout.height);
+
+      // Place each photo one by one
+      const photoHeight = layout.height / photos.length;
+
+      photos.forEach((img, i) => {
+        ctx.drawImage(img, 0, i * photoHeight, layout.width, photoHeight);
+      });
+
+      // Final output
+      const finalImg = document.createElement('img');
+      finalImg.src = layout.toDataURL('image/png');
+      showDownloadPrint(finalImg);
+    }
+  }
+
+  takeNext();
+});
       // Compose layout
       const layout = document.createElement('canvas');
       layout.width = 1200;  // 4x6 ratio (landscape)
