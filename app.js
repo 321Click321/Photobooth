@@ -69,16 +69,17 @@ singleBtn.addEventListener('click', () => {
   });
 });
 
-// Multi-photo (3 shots into a 4x6 layout)
+// Multi-photo (4 shots into a 4x6 layout)
 multiBtn.addEventListener('click', () => {
   output.innerHTML = '';
   let photos = [];
   let shot = 0;
+  const totalShots = 4; // now 4 instead of 3
 
   function takeNext() {
-    if (shot < 3) {
+    if (shot < totalShots) {
       startCountdown(3, () => {
-        // Capture image as dataURL instead of <img>
+        // Capture photo as base64 string
         const context = canvas.getContext('2d');
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
@@ -90,7 +91,7 @@ multiBtn.addEventListener('click', () => {
         takeNext();
       });
     } else {
-      // Compose layout AFTER all photos are captured
+      // All photos taken -> build layout
       const layout = document.createElement('canvas');
       layout.width = 1200;  // 4x6 portrait
       layout.height = 1800;
@@ -100,23 +101,26 @@ multiBtn.addEventListener('click', () => {
       ctx.fillStyle = 'white';
       ctx.fillRect(0, 0, layout.width, layout.height);
 
-      // Place each photo one by one
       const photoHeight = layout.height / photos.length;
 
-      photos.forEach((src, i) => {
-        const image = new Image();
-        image.src = src;
-        image.onload = () => {
-          ctx.drawImage(image, 0, i * photoHeight, layout.width, photoHeight);
-
-          // Only finish after last one is drawn
-          if (i === photos.length - 1) {
-            const finalImg = document.createElement('img');
-            finalImg.src = layout.toDataURL('image/png');
-            showDownloadPrint(finalImg);
-          }
+      // Draw photos one by one in order
+      function drawPhoto(i) {
+        if (i >= photos.length) {
+          // All done, export final
+          const finalImg = document.createElement('img');
+          finalImg.src = layout.toDataURL('image/png');
+          showDownloadPrint(finalImg);
+          return;
+        }
+        const img = new Image();
+        img.src = photos[i];
+        img.onload = () => {
+          ctx.drawImage(img, 0, i * photoHeight, layout.width, photoHeight);
+          drawPhoto(i + 1); // next photo
         };
-      });
+      }
+
+      drawPhoto(0);
     }
   }
 
