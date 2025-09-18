@@ -11,21 +11,18 @@
 <body>
   <div class="booth">
     <h1>📸 321Click Photo Booth</h1>
-
     <video id="video" autoplay playsinline></video>
 
-    <div id="menu">
+    <div>
       <button id="single">Single Photo</button>
       <button id="multi">Multi-Photo Session</button>
     </div>
 
     <div id="countdown" style="font-size:48px; margin:20px; display:none;"></div>
-
     <canvas id="canvas" style="display:none;"></canvas>
     <div id="output"></div>
   </div>
 
-  <!-- Admin Unlock -->
   <button id="adminUnlock" style="position:fixed; bottom:10px; right:10px; opacity:0.3;">
     Admin
   </button>
@@ -33,6 +30,7 @@
   <!-- Admin Panel -->
   <div id="adminPanel" style="display:none; margin-top:20px; background:#222; color:white; padding:15px;">
     <h3>Admin Settings</h3>
+
     <label for="numShots">Number of photos per session:</label>
     <input type="number" id="numShots" value="4" min="1" max="6">
     <br><br>
@@ -49,7 +47,19 @@
     <input type="color" id="frameColor" value="#000000">
     <br><br>
 
+    <label for="photoScale">Photo Scale (%):</label>
+    <input type="number" id="photoScale" value="100" min="50" max="200">
+    <br><br>
+
     <button id="closeAdmin">Close</button>
   </div>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => console.log('Service Worker registered:', reg))
+        .catch(err => console.log('Service Worker error:', err));
+    }
+  </script>
 </body>
 </html>
