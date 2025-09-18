@@ -1,7 +1,7 @@
-// app.js — single + multi photobooth with scale preview, clear, retake, download, and single outer frame
+// app.js — pro photobooth features: overlay, flash, live multi preview, scale preview, compose/download
 
 document.addEventListener('DOMContentLoaded', () => {
-  // DOM elements
+  // DOM
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
   const ctx = canvas.getContext('2d');
@@ -12,10 +12,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const multiBtn = document.getElementById('multi');
   const menu = document.getElementById('menu');
 
+  const overlayFrame = document.querySelector('.overlay-frame');
+
+  // Admin DOM
   const adminUnlock = document.getElementById('adminUnlock');
   const adminPanel = document.getElementById('adminPanel');
   const closeAdmin = document.getElementById('closeAdmin');
-
   const numShotsInput = document.getElementById('numShots');
   const countdownInput = document.getElementById('countdownTime');
   const bgColorInput = document.getElementById('bgColor');
@@ -24,86 +26,49 @@ document.addEventListener('DOMContentLoaded', () => {
   const scalePreviewCanvas = document.getElementById('scalePreview');
   const scalePreviewCtx = scalePreviewCanvas.getContext('2d');
 
-  // State
-  let capturedPhotos = [];            // data URLs for the last session
-  let lastCapturedSingle = null;      // dataURL of last single capture (used for scale preview)
-  let lastSettings = { bg:'#fff', frame:'#000', scale:100 };
+  // state
+  let capturedPhotos = [];
+  let lastCapturedSingle = null;
   let adminUnlocked = false;
+  let lastSettings = { bg:'#ffffff', frame:'#000000', scale:100 };
 
-  // small helper
   const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-  async function startCamera() {
+  // Start camera
+  async function startCamera(){
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }});
       video.srcObject = stream;
       await new Promise(resolve => {
         if (video.readyState >= 2) return resolve();
         video.onloadedmetadata = () => resolve();
       });
-      // try to play (may be blocked until user interaction)
+      // play
       video.play().catch(()=>{});
-    } catch (err) {
-      console.error('Camera error:', err);
-      alert('Camera access is required. Please allow camera permissions in Safari settings.');
+    } catch(e) {
+      console.error('camera error', e);
+      alert('Camera access required. Please allow camera permissions.');
     }
   }
   startCamera();
 
-  // Countdown (returns Promise)
-  function startCountdown(seconds) {
-    return new Promise(resolve => {
-      countdownEl.style.display = 'block';
-      countdownEl.textContent = seconds;
-      let s = seconds;
-      const t = setInterval(() => {
-        s--;
-        if (s > 0) {
-          countdownEl.textContent = s;
-        } else {
-          clearInterval(t);
-          countdownEl.style.display = 'none';
-          resolve();
-        }
-      }, 1000);
-    });
+  // update preview area style
+  function updatePreviewAreaStyle(){
+    output.style.backgroundColor = bgColorInput.value || '#ffffff';
+    // keep a light border while composing (will be removed for final)
+    output.style.border = `8px solid ${frameColorInput.value || '#000000'}`;
   }
-
-  // Capture current frame and return dataURL
-  async function captureFrame() {
-    // ensure video dims
-    let tries = 0;
-    while ((video.videoWidth === 0 || video.videoHeight === 0) && tries < 8) {
-      await sleep(60);
-      tries++;
-    }
-    const w = video.videoWidth || 1280;
-    const h = video.videoHeight || 720;
-    canvas.width = w;
-    canvas.height = h;
-    ctx.drawImage(video, 0, 0, w, h);
-    return canvas.toDataURL('image/png');
-  }
-
-  // Live preview area styling from admin colors
-  function updatePreviewAreaStyle() {
-    const bg = bgColorInput.value || '#ffffff';
-    const frame = frameColorInput.value || '#000000';
-    // Use background and light border in output area while composing
-    output.style.backgroundColor = bg;
-    output.style.border = `8px solid ${frame}`;
-  }
-  updatePreviewAreaStyle();
   bgColorInput.addEventListener('input', updatePreviewAreaStyle);
   frameColorInput.addEventListener('input', updatePreviewAreaStyle);
+  updatePreviewAreaStyle();
 
-  // Draw scale preview (uses lastCapturedSingle if present)
-  function drawScalePreview() {
+  // draw scale preview box (4x6) — uses lastCapturedSingle if present
+  function drawScalePreview(){
     const w = scalePreviewCanvas.width;
     const h = scalePreviewCanvas.height;
     scalePreviewCtx.clearRect(0,0,w,h);
 
-    // background showing bg and outer frame
+    // background + outer frame of preview
     scalePreviewCtx.fillStyle = bgColorInput.value || '#ffffff';
     scalePreviewCtx.fillRect(0,0,w,h);
     scalePreviewCtx.strokeStyle = frameColorInput.value || '#000000';
@@ -112,111 +77,87 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const scalePercent = parseInt(photoScaleInput.value,10) || 100;
 
-    if (!lastCapturedSingle) {
-      // show a placeholder rectangle showing the scale ratio
+    // draw a slot rectangle representing scaled photo inside the 4x6
+    const slotW = w * 0.8;
+    const slotH = h * 0.8;
+    const drawW = slotW * (scalePercent/100);
+    const drawH = slotH * (scalePercent/100);
+    const dx = (w - drawW)/2;
+    const dy = (h - drawH)/2;
+
+    // inner light rectangle to indicate coverage area
+    scalePreviewCtx.fillStyle = 'rgba(255,255,255,0.12)';
+    scalePreviewCtx.fillRect(dx, dy, drawW, drawH);
+
+    // if an image exists, draw a small preview cropped/centered to simulate final crop
+    if (lastCapturedSingle) {
+      const img = new Image();
+      img.onload = () => {
+        // center-crop the source to cover drawW x drawH
+        const ratio = Math.max(drawW / img.width, drawH / img.height);
+        const srcW = Math.round(drawW / ratio);
+        const srcH = Math.round(drawH / ratio);
+        const sx = Math.max(0, Math.round((img.width - srcW)/2));
+        const sy = Math.max(0, Math.round((img.height - srcH)/2));
+        scalePreviewCtx.drawImage(img, sx, sy, srcW, srcH, dx, dy, drawW, drawH);
+      };
+      img.src = lastCapturedSingle;
+    } else {
+      // placeholder text
+      scalePreviewCtx.fillStyle = '#ddd';
+      scalePreviewCtx.font = '12px Arial';
+      scalePreviewCtx.fillText(`Scale: ${scalePercent}%`, 8, 16);
       scalePreviewCtx.fillStyle = 'rgba(0,0,0,0.06)';
-      const boxW = w*0.7;
-      const boxH = h*0.7;
-      scalePreviewCtx.fillRect((w-boxW)/2, (h-boxH)/2, boxW, boxH);
-      scalePreviewCtx.fillStyle = '#666';
-      scalePreviewCtx.font = '12px Arial';
-      scalePreviewCtx.fillText(`Scale: ${scalePercent}%`, 10, 18);
-      return;
+      scalePreviewCtx.fillRect((w-slotW)/2, (h-slotH)/2, slotW, slotH);
     }
-
-    // draw lastCapturedSingle into preview at scaled size (centered)
-    const img = new Image();
-    img.onload = () => {
-      const slotW = w * 0.8;
-      const slotH = h * 0.8;
-      const sf = scalePercent/100;
-      const drawW = slotW * sf;
-      const drawH = slotH * sf;
-      const dx = (w - drawW)/2;
-      const dy = (h - drawH)/2;
-
-      // center-crop source like cover
-      const ratio = Math.max(drawW / img.width, drawH / img.height);
-      const sx = Math.max(0, Math.round((img.width - Math.round(drawW/ratio))/2));
-      const sy = Math.max(0, Math.round((img.height - Math.round(drawH/ratio))/2));
-      const sW = Math.round(drawW/ratio);
-      const sH = Math.round(drawH/ratio);
-
-      scalePreviewCtx.drawImage(img, sx, sy, sW, sH, dx, dy, drawW, drawH);
-      // overlay text
-      scalePreviewCtx.fillStyle = 'rgba(255,255,255,0.8)';
-      scalePreviewCtx.font = '12px Arial';
-      scalePreviewCtx.fillText(`Scale: ${scalePercent}%`, 10, 16);
-    };
-    img.src = lastCapturedSingle;
   }
   photoScaleInput.addEventListener('input', drawScalePreview);
 
-  // Show single preview (compose into postcard so download includes frame)
-  async function showSingleComposed(dataUrl) {
-    // Compose postcard with single image
-    const settings = {
-      bg: bgColorInput.value || '#ffffff',
-      frame: frameColorInput.value || '#000000',
-      scale: parseInt(photoScaleInput.value,10) || 100
-    };
-    lastSettings = settings;
-    const canvasEl = await composePostcard([dataUrl], settings);
-    showFinal(canvasEl);
+  // countdown with overlay flash each tick
+  async function startCountdown(seconds){
+    countdownEl.style.display = 'block';
+    countdownEl.textContent = seconds;
+    for (let s = seconds; s > 0; s--){
+      countdownEl.textContent = s;
+      // flash overlay for each tick
+      overlayFrame.classList.add('flash');
+      setTimeout(()=> overlayFrame.classList.remove('flash'), 300);
+      await sleep(1000);
+    }
+    countdownEl.style.display = 'none';
   }
 
-  // Show final postcard canvas with controls (download blue, clear, retake)
-  function showFinal(canvasEl) {
-    // remove CSS border to avoid double frame look
-    output.style.border = 'none';
-    output.innerHTML = '';
-    canvasEl.className = 'finalPhoto';
-    output.appendChild(canvasEl);
-
-    const controls = document.createElement('div');
-    controls.className = 'controlsRow';
-
-    // Download (anchor styled)
-    const dl = document.createElement('a');
-    dl.href = canvasEl.toDataURL('image/png');
-    dl.download = '321click_photobooth.png';
-    dl.textContent = 'Download';
-    dl.className = 'downloadBtn';
-    controls.appendChild(dl);
-
-    // Retake -> go back to menu
-    const retake = document.createElement('button');
-    retake.textContent = 'Retake';
-    retake.onclick = () => { output.innerHTML = ''; menu.style.display = 'block'; updatePreviewAreaStyle(); };
-    controls.appendChild(retake);
-
-    // Clear -> same as retake but also clears capturedPhotos
-    const clear = document.createElement('button');
-    clear.textContent = 'Clear';
-    clear.onclick = () => { output.innerHTML = ''; capturedPhotos = []; menu.style.display = 'block'; updatePreviewAreaStyle(); };
-    controls.appendChild(clear);
-
-    output.appendChild(controls);
-    menu.style.display = 'none';
+  // capture current video frame -> dataURL
+  async function captureFrame(){
+    // wait for sizes
+    let tries = 0;
+    while ((video.videoWidth === 0 || video.videoHeight === 0) && tries < 8) {
+      await sleep(60);
+      tries++;
+    }
+    const w = video.videoWidth || 1280;
+    const h = video.videoHeight || 720;
+    canvas.width = w; canvas.height = h;
+    ctx.drawImage(video, 0, 0, w, h);
+    return canvas.toDataURL('image/png');
   }
 
-  // Compose postcard: returns a canvas element (async)
-  async function composePostcard(images, settings) {
-    const outW = 1200, outH = 1800; // 4x6 printable canvas
+  // compose postcard (async) returns canvas element
+  async function composePostcard(images, settings){
+    const outW = 1200, outH = 1800; // print canvas (4x6)
     const out = document.createElement('canvas');
-    out.width = outW;
-    out.height = outH;
+    out.width = outW; out.height = outH;
     const ct = out.getContext('2d');
 
     // background + outer frame
-    ct.fillStyle = settings.bg || '#fff';
+    ct.fillStyle = settings.bg || '#ffffff';
     ct.fillRect(0,0,outW,outH);
 
-    // outer frame (single)
     ct.lineWidth = 30;
-    ct.strokeStyle = settings.frame || '#000';
+    ct.strokeStyle = settings.frame || '#000000';
     ct.strokeRect(0,0,outW,outH);
 
+    // layout: 2 columns, rows = ceil(n/2)
     const cols = 2;
     const rows = Math.max(1, Math.ceil(images.length / cols));
     const cellW = outW / cols;
@@ -225,8 +166,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const slotW = cellW - padding;
     const slotH = cellH - padding;
 
-    // Load images (promise)
-    const loaded = await Promise.all(images.map(src => new Promise(res => {
+    // load images
+    const loaded = await Promise.all(images.map(src => new Promise(res=>{
       const im = new Image();
       im.onload = () => res(im);
       im.onerror = () => res(im);
@@ -237,40 +178,73 @@ document.addEventListener('DOMContentLoaded', () => {
       const im = loaded[i];
       const col = i % cols;
       const row = Math.floor(i/cols);
-      const x = col * cellW + padding/2;
-      const y = row * cellH + padding/2;
+      const x = col*cellW + padding/2;
+      const y = row*cellH + padding/2;
 
-      // desired draw area (slot)
       const photoW = slotW;
       const photoH = slotH;
 
-      // scale factor (centered zoom)
-      const scaleFactor = (settings.scale||100)/100;
+      const scaleFactor = (settings.scale || 100)/100;
       const drawW = photoW * scaleFactor;
       const drawH = photoH * scaleFactor;
       const destX = x + (photoW - drawW)/2;
       const destY = y + (photoH - drawH)/2;
 
-      // center-crop source like "cover"
+      // center-crop source to "cover" drawW x drawH
       const ratio = Math.max(drawW / im.width, drawH / im.height);
-      const sW = Math.round(drawW / ratio);
-      const sH = Math.round(drawH / ratio);
-      const sx = Math.max(0, Math.round((im.width - sW)/2));
-      const sy = Math.max(0, Math.round((im.height - sH)/2));
+      const srcW = Math.round(drawW / ratio);
+      const srcH = Math.round(drawH / ratio);
+      const sx = Math.max(0, Math.round((im.width - srcW)/2));
+      const sy = Math.max(0, Math.round((im.height - srcH)/2));
 
-      ct.drawImage(im, sx, sy, sW, sH, destX, destY, drawW, drawH);
+      ct.drawImage(im, sx, sy, srcW, srcH, destX, destY, drawW, drawH);
 
-      // draw slot frame (thin) — this is the per-photo inner frame
+      // thin slot frame
       ct.lineWidth = 12;
-      ct.strokeStyle = settings.frame || '#000';
+      ct.strokeStyle = settings.frame || '#000000';
       ct.strokeRect(x, y, photoW, photoH);
     }
 
     return out;
   }
 
-  // Single flow: capture, store lastCapturedSingle, compose and show final postcard
-  singleBtn.addEventListener('click', async () => {
+  // show final canvas with blue download, retake, clear
+  function showFinal(canvasEl){
+    // remove temporary preview border to avoid double-frame look
+    output.style.border = 'none';
+    output.innerHTML = '';
+    canvasEl.className = 'finalPhoto';
+    output.appendChild(canvasEl);
+
+    const controls = document.createElement('div');
+    controls.className = 'controlsRow';
+
+    // download anchor (blue)
+    const dl = document.createElement('a');
+    dl.href = canvasEl.toDataURL('image/png');
+    dl.download = '321click_photobooth.png';
+    dl.textContent = 'Download';
+    dl.className = 'downloadBtn';
+    controls.appendChild(dl);
+
+    // retake
+    const retake = document.createElement('button');
+    retake.textContent = 'Retake';
+    retake.onclick = () => { output.innerHTML=''; menu.style.display='flex'; updatePreviewAreaStyle(); };
+    controls.appendChild(retake);
+
+    // clear
+    const clear = document.createElement('button');
+    clear.textContent = 'Clear';
+    clear.onclick = () => { output.innerHTML=''; capturedPhotos=[]; menu.style.display='flex'; updatePreviewAreaStyle(); };
+    controls.appendChild(clear);
+
+    output.appendChild(controls);
+    menu.style.display = 'none';
+  }
+
+  // show single preview (composed to postcard) — wrapper kept for clarity
+  async function handleSingleCapture(){
     menu.style.display = 'none';
     output.innerHTML = '';
     capturedPhotos = [];
@@ -279,20 +253,21 @@ document.addEventListener('DOMContentLoaded', () => {
     await sleep(80);
     const data = await captureFrame();
     lastCapturedSingle = data;
-    drawScalePreview();           // update admin preview if open
-    // compose into postcard so download contains frame
+    drawScalePreview(); // update admin preview
+    capturedPhotos.push(data);
+
     const settings = {
       bg: bgColorInput.value || '#ffffff',
       frame: frameColorInput.value || '#000000',
       scale: parseInt(photoScaleInput.value,10) || 100
     };
     lastSettings = settings;
-    const canvasEl = await composePostcard([data], settings);
+    const canvasEl = await composePostcard(capturedPhotos, settings);
     showFinal(canvasEl);
-  });
+  }
 
-  // Multi flow: show live thumbnails and compose final postcard
-  multiBtn.addEventListener('click', async () => {
+  // multi flow: show progressive postcard updates after each shot
+  async function handleMultiCapture(){
     menu.style.display = 'none';
     output.innerHTML = '';
     capturedPhotos = [];
@@ -304,78 +279,106 @@ document.addEventListener('DOMContentLoaded', () => {
       await sleep(80);
       const data = await captureFrame();
       capturedPhotos.push(data);
-      // show thumbnail
-      const thumb = new Image();
-      thumb.src = data;
-      thumb.className = 'thumb';
-      output.appendChild(thumb);
-      // save lastCapturedSingle to allow scale preview
-      lastCapturedSingle = data;
+      lastCapturedSingle = data; // for admin preview
       drawScalePreview();
-      await sleep(200);
+
+      // update live postcard preview with current images
+      const settings = {
+        bg: bgColorInput.value || '#ffffff',
+        frame: frameColorInput.value || '#000000',
+        scale: parseInt(photoScaleInput.value,10) || 100
+      };
+      lastSettings = settings;
+      const previewCanvas = await composePostcard(capturedPhotos, settings);
+      // show progressive postcard scaled to fit
+      output.innerHTML = '';
+      previewCanvas.className = 'finalPhoto';
+      output.appendChild(previewCanvas);
+
+      // also show small thumbnails under it
+      const thumbsRow = document.createElement('div');
+      thumbsRow.style.marginTop = '8px';
+      thumbsRow.style.display = 'flex';
+      thumbsRow.style.gap = '6px';
+      capturedPhotos.forEach(src => {
+        const t = new Image(); t.src = src; t.className='thumb';
+        thumbsRow.appendChild(t);
+      });
+      output.appendChild(thumbsRow);
+
+      await sleep(220); // small pause so UI updates smoothly
     }
 
-    const settings = {
-      bg: bgColorInput.value || '#ffffff',
-      frame: frameColorInput.value || '#000000',
-      scale: parseInt(photoScaleInput.value,10) || 100
-    };
-    lastSettings = settings;
-
-    const composited = await composePostcard(capturedPhotos, settings);
-    showFinal(composited);
-  });
-
-  // drawScalePreview wrapper
-  function drawScalePreview() {
-    try { // safe guard if admin not present
-      const fn = window.drawScalePreviewInternal;
-      if (typeof fn === 'function') fn();
-    } catch(e){}
+    // final composition is already shown above; ensure Download/controls appended
+    const finalCanvas = await composePostcard(capturedPhotos, lastSettings);
+    showFinal(finalCanvas);
   }
 
-  // Expose a function for the earlier defined preview drawing (keeps code modular)
-  window.drawScalePreviewInternal = function() {
-    // use previously defined drawScalePreview() closure
-    // call the closure declared earlier
-    // Since we defined drawScalePreview earlier, just call it:
-    try {
-      // call function defined in outer scope:
-      const ev = new Event('noop');
-    } catch(e){}
-  };
-  // Instead of the above no-op, just call the local drawScalePreview function defined earlier:
-  // (we defined it earlier in this scope so we can call it directly)
-  // but to keep consistency just call the function name:
-  // (the function exists above as drawScalePreview)
-  // ensure it's available:
-  if (typeof drawScalePreview === 'function') {
-    // wire to a global so admin input can call it
-    window.drawScalePreviewInternal = drawScalePreview;
-  }
+  // drawScalePreview uses the function defined earlier in this scope
+  function drawScalePreview(){
+    // local implementation mirrors earlier UI behaviour
+    const w = scalePreviewCanvas.width;
+    const h = scalePreviewCanvas.height;
+    scalePreviewCtx.clearRect(0,0,w,h);
 
-  // Admin unlock (one-time per session)
+    scalePreviewCtx.fillStyle = bgColorInput.value || '#ffffff';
+    scalePreviewCtx.fillRect(0,0,w,h);
+    scalePreviewCtx.strokeStyle = frameColorInput.value || '#000000';
+    scalePreviewCtx.lineWidth = 6;
+    scalePreviewCtx.strokeRect(0,0,w,h);
+
+    const scalePercent = parseInt(photoScaleInput.value,10) || 100;
+    const slotW = w*0.8, slotH = h*0.8;
+    const drawW = slotW * (scalePercent/100);
+    const drawH = slotH * (scalePercent/100);
+    const dx = (w - drawW)/2, dy = (h - drawH)/2;
+
+    // inner rect to show coverage
+    scalePreviewCtx.fillStyle = 'rgba(255,255,255,0.08)';
+    scalePreviewCtx.fillRect(dx, dy, drawW, drawH);
+
+    // if we have lastCapturedSingle, draw it as a preview inside the draw area
+    if (lastCapturedSingle) {
+      const img = new Image();
+      img.onload = () => {
+        const ratio = Math.max(drawW / img.width, drawH / img.height);
+        const sW = Math.round(drawW / ratio);
+        const sH = Math.round(drawH / ratio);
+        const sx = Math.max(0, Math.round((img.width - sW)/2));
+        const sy = Math.max(0, Math.round((img.height - sH)/2));
+        scalePreviewCtx.drawImage(img, sx, sy, sW, sH, dx, dy, drawW, drawH);
+      };
+      img.src = lastCapturedSingle;
+    } else {
+      scalePreviewCtx.fillStyle = '#ccc';
+      scalePreviewCtx.font = '12px Arial';
+      scalePreviewCtx.fillText(`Scale: ${scalePercent}%`, 8, 16);
+    }
+  }
+  photoScaleInput.addEventListener('input', drawScalePreview);
+
+  // event bindings
+  singleBtn.addEventListener('click', handleSingleCapture);
+  multiBtn.addEventListener('click', handleMultiCapture);
+
+  // admin unlock
   adminUnlock.addEventListener('click', () => {
     if (adminUnlocked) {
       adminPanel.style.display = adminPanel.style.display === 'block' ? 'none' : 'block';
+      drawScalePreview();
       return;
     }
     const pass = prompt('Enter admin password:');
     if (pass === '1234') {
       adminUnlocked = true;
       adminPanel.style.display = 'block';
-      // draw preview when panel opens
       drawScalePreview();
     } else if (pass !== null) {
       alert('Wrong password');
     }
   });
-
   closeAdmin.addEventListener('click', () => adminPanel.style.display = 'none');
 
-  // update live preview area on admin changes
-  bgColorInput.addEventListener('input', updatePreviewAreaStyle);
-  frameColorInput.addEventListener('input', updatePreviewAreaStyle);
-  photoScaleInput.addEventListener('input', drawScalePreview);
-
+  // initial preview draw
+  drawScalePreview();
 });
