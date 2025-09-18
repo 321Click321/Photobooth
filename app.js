@@ -118,17 +118,21 @@ function finishSession() {
   fctx.fillStyle = bgColor;
   fctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
 
-  // Place photos in 2x2 grid
+  // Place photos in 2x2 grid with padding
   const rows = 2, cols = 2;
-  const photoW = finalCanvas.width / cols;
-  const photoH = finalCanvas.height / rows;
+  const cellW = finalCanvas.width / cols;
+  const cellH = finalCanvas.height / rows;
+  const photoW = cellW * 0.85; // shrink to 85% of cell
+  const photoH = cellH * 0.85;
+  const xOffset = (cellW - photoW) / 2;
+  const yOffset = (cellH - photoH) / 2;
 
   capturedPhotos.forEach((photo, i) => {
     const img = new Image();
     img.src = photo;
     img.onload = () => {
-      const x = (i % cols) * photoW;
-      const y = Math.floor(i / cols) * photoH;
+      const x = (i % cols) * cellW + xOffset;
+      const y = Math.floor(i / cols) * cellH + yOffset;
       fctx.drawImage(img, x, y, photoW, photoH);
 
       if (i === capturedPhotos.length - 1) {
