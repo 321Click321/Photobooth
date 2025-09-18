@@ -2,90 +2,91 @@ const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 const output = document.getElementById("output");
-const countdownEl = document.getElementById("countdown");
 
 let capturedPhotos = [];
-let lastSettings = { bg: "#ffffff", frame: "#000000" };
+let isMulti = false;
+let numShots = 4;
+let countdownTime = 3;
+let lastSettings = { bg: "#ffffff", frame: "#000000", scale: 100 };
 
-// 🎥 Start camera
+// Start camera
 navigator.mediaDevices.getUserMedia({ video: true })
   .then(stream => { video.srcObject = stream; })
   .catch(err => console.error("Camera error:", err));
 
-// 📸 Single photo
-document.getElementById("single").addEventListener("click", () => {
-  startCountdown(() => takePhoto("single"));
-});
-
-// 📸 Multi-photo session
-document.getElementById("multi").addEventListener("click", () => {
-  startMultiCapture();
-});
-
-// Countdown
-function startCountdown(callback) {
-  let count = parseInt(document.getElementById("countdownTime").value, 10) || 3;
+// Countdown helper
+function startCountdown(cb) {
+  let countdown = countdownTime;
+  const countdownEl = document.getElementById("countdown");
   countdownEl.style.display = "block";
-
-  let interval = setInterval(() => {
-    countdownEl.textContent = count;
-    count--;
-    if (count < 0) {
+  countdownEl.innerText = countdown;
+  const interval = setInterval(() => {
+    countdown--;
+    if (countdown > 0) {
+      countdownEl.innerText = countdown;
+    } else {
       clearInterval(interval);
       countdownEl.style.display = "none";
-      callback();
+      cb();
     }
   }, 1000);
 }
 
-// Take photo
-function takePhoto(mode, resolve) {
+// Capture single shot
+function takePhoto() {
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-  if (mode === "single") {
-    capturedPhotos = [canvas.toDataURL("image/png")];
-    finishSession();
-  } else if (mode === "multi") {
-    const photo = canvas.toDataURL("image/png");
-    capturedPhotos.push(photo);
-
-    // Show live preview thumbnail
-    const thumb = new Image();
-    thumb.src = photo;
-    thumb.className = "thumb";
-    output.appendChild(thumb);
-
-    resolve();
-  }
+  return canvas.toDataURL("image/png");
 }
 
-// Multi capture
-async function startMultiCapture() {
+// Multi-session handler
+function startSession(multi) {
+  isMulti = multi;
   capturedPhotos = [];
-  output.innerHTML = ""; // clear previews
-  let numShots = parseInt(document.getElementById("numShots").value, 10) || 4;
-
-  for (let i = 0; i < numShots; i++) {
-    await new Promise(resolve => {
-      startCountdown(() => takePhoto("multi", resolve));
+  if (isMulti) {
+    captureMulti(0);
+  } else {
+    startCountdown(() => {
+      const photo = takePhoto();
+      capturedPhotos.push(photo);
+      finishSession();
     });
   }
-  finishSession();
 }
 
-// Finish & compose postcard
+function captureMulti(i) {
+  if (i >= numShots) {
+    finishSession();
+    return;
+  }
+  startCountdown(() => {
+    const photo = takePhoto();
+    capturedPhotos.push(photo);
+
+    // Show live preview
+    const img = document.createElement("img");
+    img.src = photo;
+    img.style.width = "120px";
+    img.style.margin = "5px";
+    output.appendChild(img);
+
+    setTimeout(() => captureMulti(i + 1), 500);
+  });
+}
+
+// Final postcard creation
 function finishSession() {
   const bg = document.getElementById("bgColor").value;
   const frame = document.getElementById("frameColor").value;
-  lastSettings = { bg, frame };
+  const scale = parseInt(document.getElementById("photoScale").value, 10) || 100;
+  lastSettings = { bg, frame, scale };
 
   const postcard = composePostcard(capturedPhotos, lastSettings);
   showFinal(postcard);
 }
 
-// Compose postcard
+// Compose postcard with scaling
 function composePostcard(photos, settings) {
   const w = 1200, h = 1800; // 4x6 ratio
   const postcardCanvas = document.createElement("canvas");
@@ -96,6 +97,11 @@ function composePostcard(photos, settings) {
   // Background
   pctx.fillStyle = settings.bg;
   pctx.fillRect(0, 0, w, h);
+
+  // Outer border
+  pctx.strokeStyle = settings.frame;
+  pctx.lineWidth = 30;
+  pctx.strokeRect(0, 0, w, h);
 
   // Grid layout
   const cols = 2;
@@ -108,12 +114,20 @@ function composePostcard(photos, settings) {
     img.src = src;
     const col = i % cols;
     const row = Math.floor(i / cols);
+
     img.onload = () => {
       const x = col * (photoW + 40) + 20;
       const y = row * (photoH + 40) + 20;
-      pctx.drawImage(img, x, y, photoW, photoH);
 
-      // Frame
+      const scaleFactor = settings.scale / 100;
+      const drawW = photoW * scaleFactor;
+      const drawH = photoH * scaleFactor;
+      const offsetX = x + (photoW - drawW) / 2;
+      const offsetY = y + (photoH - drawH) / 2;
+
+      pctx.drawImage(img, offsetX, offsetY, drawW, drawH);
+
+      // Slot frame
       pctx.strokeStyle = settings.frame;
       pctx.lineWidth = 15;
       pctx.strokeRect(x, y, photoW, photoH);
@@ -123,59 +137,44 @@ function composePostcard(photos, settings) {
   return postcardCanvas;
 }
 
-// Show result with buttons
-function showFinal(postcardCanvas) {
+// Show final output
+function showFinal(canvasEl) {
   output.innerHTML = "";
-  postcardCanvas.className = "finalPhoto";
-  output.appendChild(postcardCanvas);
+  output.appendChild(canvasEl);
 
-  const controls = document.createElement("div");
-  controls.style.marginTop = "10px";
+  // Download button
+  const dl = document.createElement("a");
+  dl.innerText = "Download Photo";
+  dl.href = canvasEl.toDataURL("image/png");
+  dl.download = "photobooth.png";
+  dl.className = "downloadBtn";
+  output.appendChild(dl);
 
-  // Retake
-  const retakeBtn = document.createElement("button");
-  retakeBtn.textContent = "Retake";
-  retakeBtn.onclick = () => {
+  // Retake options
+  const retake = document.createElement("button");
+  retake.innerText = "Retake";
+  retake.onclick = () => {
     output.innerHTML = "";
-    capturedPhotos = [];
   };
-
-  // Clear
-  const clearBtn = document.createElement("button");
-  clearBtn.textContent = "Clear";
-  clearBtn.onclick = () => {
-    output.innerHTML = "";
-    capturedPhotos = [];
-    document.getElementById("menu").style.display = "block";
-  };
-
-  // Download
-  const downloadBtn = document.createElement("button");
-  downloadBtn.textContent = "Download";
-  downloadBtn.onclick = () => {
-    const link = document.createElement("a");
-    link.download = "photobooth.png";
-    link.href = postcardCanvas.toDataURL("image/png");
-    link.click();
-  };
-
-  controls.appendChild(retakeBtn);
-  controls.appendChild(clearBtn);
-  controls.appendChild(downloadBtn);
-  output.appendChild(controls);
-
-  // Hide menu after capture
-  document.getElementById("menu").style.display = "none";
+  output.appendChild(retake);
 }
 
-// 🔐 Admin unlock
-document.getElementById("adminUnlock").addEventListener("click", () => {
-  const pass = prompt("Enter admin password:");
+// Event listeners
+document.getElementById("single").onclick = () => startSession(false);
+document.getElementById("multi").onclick = () => {
+  numShots = parseInt(document.getElementById("numShots").value, 10);
+  startSession(true);
+};
+
+// Admin toggle
+document.getElementById("adminUnlock").onclick = () => {
+  const pass = prompt("Enter Admin Password:");
   if (pass === "321click") {
     document.getElementById("adminPanel").style.display = "block";
+  } else {
+    alert("Wrong password!");
   }
-});
-
-document.getElementById("closeAdmin").addEventListener("click", () => {
+};
+document.getElementById("closeAdmin").onclick = () => {
   document.getElementById("adminPanel").style.display = "none";
-});
+};
