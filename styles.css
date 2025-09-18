@@ -1,36 +1,67 @@
 /* Base */
-body { margin:0; font-family:Arial,Helvetica,sans-serif; background:#111; color:#fff; text-align:center; }
-.booth { padding:18px; max-width:920px; margin:0 auto; }
-
-/* Video */
-video { width:90%; max-width:720px; border-radius:10px; border:4px solid #333; display:block; margin:0 auto; }
-
-/* Buttons */
-.controls button, .controlsRow button, .admin-close {
-  margin:8px; padding:10px 14px; font-size:16px; border-radius:8px; border:0; cursor:pointer; background:#007bff; color:#fff;
+:root {
+  --bg: #111;
+  --accent: #007bff;
+  --panel: #222;
 }
-.controls button:hover, .controlsRow button:hover { filter:brightness(.95) }
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:#fff;font-family:Arial,Helvetica,sans-serif;text-align:center}
+.booth{padding:18px;max-width:980px;margin:0 auto}
+
+/* Camera wrap keeps video and overlay aligned */
+.camera-wrap{position:relative;display:flex;justify-content:center}
+video{width:90%;max-width:720px;border-radius:10px;border:4px solid #222;background:#000;display:block}
+
+/* Overlay: 4x6 ratio frame centered on video */
+#overlay{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;display:flex;align-items:center;justify-content:center}
+.overlay-frame{
+  width: 40vw;               /* responsive size; will scale; keeps 2:3 ratio */
+  max-width:480px;
+  aspect-ratio: 2/3;        /* ensures 4x6 ratio */
+  box-sizing:border-box;
+  border:2px solid rgba(255,255,255,0.85); /* thin white guide */
+  border-radius:6px;
+  background: rgba(255,255,255,0.02);
+  transition: box-shadow 120ms, border-color 120ms;
+}
+
+/* flash class applied during countdown ticks */
+.overlay-frame.flash {
+  animation: overlay-flash 320ms ease-in-out;
+}
+@keyframes overlay-flash {
+  0% { box-shadow: 0 0 0 0 rgba(255,0,0,0.0); border-color: rgba(255,255,255,0.85); }
+  50% { box-shadow: 0 0 24px 6px rgba(255,0,0,0.25); border-color: rgba(255, 80, 80, 1); }
+  100% { box-shadow: 0 0 0 0 rgba(255,0,0,0); border-color: rgba(255,255,255,0.85); }
+}
+
+/* Controls */
+.controls button, .controlsRow button, .admin-close {
+  margin:10px;padding:10px 16px;font-size:16px;border-radius:8px;border:0;cursor:pointer;background:var(--accent);color:#fff;
+}
+.controls button:hover{filter:brightness(.95)}
 
 /* Countdown */
-#countdown { font-size:56px; color:#ff6b6b; margin-top:10px; display:none }
+#countdown{font-size:58px;color:#ff6b6b;margin-top:10px;display:none}
 
 /* Output area */
-#output { margin-top:18px; padding:12px; min-height:80px; display:flex; align-items:center; justify-content:center; flex-direction:column; transition:background .12s, border .12s; border-radius:8px; }
-.finalPhoto { max-width:90%; height:auto; border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,0.6); }
-.singlePreview { max-width:90%; height:auto; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.6); }
-
-/* Thumbnails */
-.thumb { width:100px; height:auto; margin:6px; border-radius:6px; border:2px solid rgba(255,255,255,0.12); }
+#output{margin-top:18px;padding:12px;min-height:80px;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:background .12s,border .12s;border-radius:8px}
+.finalPhoto{max-width:90%;height:auto;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,0.6)}
+.singlePreview{max-width:90%;height:auto;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,0.6)}
+.thumb{width:100px;height:auto;margin:6px;border-radius:6px;border:2px solid rgba(255,255,255,0.12)}
 
 /* Download anchor button (blue) */
-.downloadBtn, a.downloadBtn { display:inline-block; padding:10px 16px; background:#007bff; color:#fff; text-decoration:none; border-radius:8px; margin-right:8px; }
+.downloadBtn, a.downloadBtn{display:inline-block;padding:10px 16px;background:var(--accent);color:#fff;text-decoration:none;border-radius:8px;margin-right:8px}
+.downloadBtn:hover{filter:brightness(.95)}
 
 /* Admin button & panel */
-.admin-btn { position:fixed; bottom:12px; right:12px; opacity:.22; background:#222; color:#fff; border-radius:8px; border:1px solid #333; padding:8px; }
-.admin-panel { display:none; position:fixed; left:50%; top:8%; transform:translateX(-50%); background:#222; color:#fff; border-radius:10px; padding:14px; border:1px solid #444; z-index:99999; width:320px; text-align:left; }
-.admin-panel label { display:block; margin-top:8px; font-size:14px; color:#ddd; }
-.admin-close { background:#c0392b; width:100%; padding:10px; color:#fff; border-radius:8px; margin-top:10px; cursor:pointer; }
+.admin-btn{position:fixed;bottom:12px;right:12px;opacity:.22;background:var(--panel);color:#fff;border-radius:8px;border:1px solid #333;padding:8px}
+.admin-panel{display:none;position:fixed;left:50%;top:8%;transform:translateX(-50%);background:var(--panel);color:#fff;border-radius:10px;padding:14px;border:1px solid #444;z-index:99999;width:340px;text-align:left}
+.admin-panel label{display:block;margin-top:8px;font-size:14px;color:#ddd}
+.admin-close{background:#c0392b;width:100%;padding:10px;color:#fff;border-radius:8px;margin-top:10px}
 
-/* controls row */
-.controlsRow { margin-top:12px; display:flex; gap:8px; align-items:center; justify-content:center; flex-wrap:wrap; }
+/* scale preview wrapper keeps 4x6 preview visible */
+.scale-preview-wrap{width:100%;background:#333;padding:8px;border-radius:8px;margin-top:6px;}
 
+/* controls row used under formatted output */
+.controlsRow{margin-top:12px;display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap}
