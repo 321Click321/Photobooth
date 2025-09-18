@@ -11,13 +11,14 @@ const countdownEl = document.getElementById("countdown");
 let capturedPhotos = [];
 let numShots = 4;
 let countdownTime = 3;
+let lastSettings = { bg: "#ffffff", frame: "#000000" };
 
 // Start camera
 navigator.mediaDevices.getUserMedia({ video: true })
   .then(stream => video.srcObject = stream)
   .catch(err => console.error("Camera error:", err));
 
-// Countdown function
+// Countdown
 function startCountdown(seconds, callback) {
   countdownEl.style.display = "block";
   countdownEl.textContent = seconds;
@@ -35,7 +36,7 @@ function startCountdown(seconds, callback) {
   }, 1000);
 }
 
-// Capture a photo
+// Capture one photo
 function capturePhoto() {
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
@@ -43,7 +44,7 @@ function capturePhoto() {
   return canvas.toDataURL("image/png");
 }
 
-// Single photo
+// Single photo mode
 singleBtn.addEventListener("click", () => {
   startCountdown(countdownTime, () => {
     output.innerHTML = "";
@@ -55,7 +56,7 @@ singleBtn.addEventListener("click", () => {
   });
 });
 
-// Multi photo session
+// Multi-session
 multiBtn.addEventListener("click", () => {
   capturedPhotos = [];
   takeNextPhoto(0);
@@ -66,14 +67,14 @@ function takeNextPhoto(i) {
     startCountdown(countdownTime, () => {
       const photo = capturePhoto();
       capturedPhotos.push(photo);
-      takeNextPhoto(i + 1);
+      setTimeout(() => takeNextPhoto(i + 1), 500); // small pause
     });
   } else {
     finishSession();
   }
 }
 
-// Finish session and build collage
+// Build final collage
 function finishSession() {
   output.innerHTML = "";
 
@@ -82,19 +83,20 @@ function finishSession() {
   finalCanvas.height = 1800;
   const fctx = finalCanvas.getContext("2d");
 
-  // Colors from admin
+  // Get current admin colors
   const bgColor = document.getElementById("templateColor")?.value || "#ffffff";
   const frameColor = document.getElementById("frameColor")?.value || "#000000";
+  lastSettings = { bg: bgColor, frame: frameColor };
 
-  // Draw background
+  // Fill background
   fctx.fillStyle = bgColor;
   fctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
 
   const rows = 2, cols = 2;
   const cellW = finalCanvas.width / cols;
   const cellH = finalCanvas.height / rows;
-  const photoW = cellW * 0.75;  // smaller so background shows clearly
-  const photoH = cellH * 0.75;
+  const photoW = cellW * 0.65;  // now 65%
+  const photoH = cellH * 0.65;
   const xOffset = (cellW - photoW) / 2;
   const yOffset = (cellH - photoH) / 2;
 
@@ -108,8 +110,8 @@ function finishSession() {
 
       fctx.drawImage(img, x, y, photoW, photoH);
 
-      // Frame border
-      fctx.lineWidth = 20;  // thicker
+      // Border
+      fctx.lineWidth = 20;
       fctx.strokeStyle = frameColor;
       fctx.strokeRect(x, y, photoW, photoH);
 
@@ -121,12 +123,10 @@ function finishSession() {
   });
 
   capturedPhotos = [];
-  singleBtn.disabled = false;
-  multiBtn.disabled = false;
   retakeBtn.style.display = "inline-block";
 }
 
-// Show final collage with download
+// Show collage and download button
 function showFinalCollage(canvasObj) {
   output.innerHTML = "";
   const finalImg = new Image();
@@ -168,17 +168,18 @@ closeAdmin.addEventListener("click", () => {
   adminPanel.style.display = "none";
 });
 
-// Apply admin settings
+// Admin settings
 document.getElementById("numShots").addEventListener("input", e => {
   numShots = parseInt(e.target.value);
 });
-
 document.getElementById("countdownTime").addEventListener("input", e => {
   countdownTime = parseInt(e.target.value);
 });
 
-// Update preview manually
-document.getElementById("updatePreview").addEventListener("click", () => {
-  if (!window.lastCanvas) return alert("No photo session yet!");
-  finishSession();
+// 🎨 Live background + frame preview
+document.getElementById("templateColor").addEventListener("input", e => {
+  output.style.backgroundColor = e.target.value;
+});
+document.getElementById("frameColor").addEventListener("input", e => {
+  output.style.border = `10px solid ${e.target.value}`;
 });
