@@ -48,7 +48,15 @@ function takePhoto(mode, resolve) {
     capturedPhotos = [canvas.toDataURL("image/png")];
     finishSession();
   } else if (mode === "multi") {
-    capturedPhotos.push(canvas.toDataURL("image/png"));
+    const photo = canvas.toDataURL("image/png");
+    capturedPhotos.push(photo);
+
+    // Show live preview thumbnail
+    const thumb = new Image();
+    thumb.src = photo;
+    thumb.className = "thumb";
+    output.appendChild(thumb);
+
     resolve();
   }
 }
@@ -56,6 +64,7 @@ function takePhoto(mode, resolve) {
 // Multi capture
 async function startMultiCapture() {
   capturedPhotos = [];
+  output.innerHTML = ""; // clear previews
   let numShots = parseInt(document.getElementById("numShots").value, 10) || 4;
 
   for (let i = 0; i < numShots; i++) {
@@ -117,6 +126,7 @@ function composePostcard(photos, settings) {
 // Show result with buttons
 function showFinal(postcardCanvas) {
   output.innerHTML = "";
+  postcardCanvas.className = "finalPhoto";
   output.appendChild(postcardCanvas);
 
   const controls = document.createElement("div");
