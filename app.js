@@ -113,20 +113,24 @@ function finishSession() {
   finalCanvas.height = 1800;
   const fctx = finalCanvas.getContext("2d");
 
-  // Background color from admin panel
+  // Background color from admin
   const bgColor = document.getElementById("templateColor")?.value || "#ffffff";
   fctx.fillStyle = bgColor;
   fctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+
+  // Frame color from admin
+  const frameColor = document.getElementById("frameColor")?.value || "#ffffff";
 
   // Place photos in 2x2 grid with padding
   const rows = 2, cols = 2;
   const cellW = finalCanvas.width / cols;
   const cellH = finalCanvas.height / rows;
-  const photoW = cellW * 0.85; // shrink to 85% of cell
+  const photoW = cellW * 0.85;
   const photoH = cellH * 0.85;
   const xOffset = (cellW - photoW) / 2;
   const yOffset = (cellH - photoH) / 2;
 
+  let loaded = 0;
   capturedPhotos.forEach((photo, i) => {
     const img = new Image();
     img.src = photo;
@@ -137,17 +141,18 @@ function finishSession() {
       // Draw photo
       fctx.drawImage(img, x, y, photoW, photoH);
 
-      // Draw frame (border) around photo
-      fctx.lineWidth = 15; // thickness of frame
-      fctx.strokeStyle = "#000000"; // default black frame
+      // Draw frame
+      fctx.lineWidth = 8;
+      fctx.strokeStyle = frameColor;
       fctx.strokeRect(x, y, photoW, photoH);
 
-      if (i === capturedPhotos.length - 1) {
+      loaded++;
+      if (loaded === capturedPhotos.length) {
         const finalImg = new Image();
         finalImg.src = finalCanvas.toDataURL("image/png");
         output.appendChild(finalImg);
 
-        // Add Download button
+        // Download button
         const downloadBtn = document.createElement("a");
         downloadBtn.textContent = "⬇️ Download Photo";
         downloadBtn.href = finalImg.src;
