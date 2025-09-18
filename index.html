@@ -11,20 +11,28 @@
 <body>
   <div class="booth">
     <h1>📸 321Click Photo Booth</h1>
+
+    <!-- Live camera feed -->
     <video id="video" autoplay playsinline></video>
 
+    <!-- Main controls -->
     <div>
       <button id="single">Single Photo</button>
       <button id="multi">Multi-Photo Session</button>
       <button id="retake" style="display:none;">Retake</button>
     </div>
 
+    <!-- Countdown text -->
     <div id="countdown" style="font-size:48px; margin:20px; display:none;"></div>
 
+    <!-- Hidden canvas for captures -->
     <canvas id="canvas" style="display:none;"></canvas>
+
+    <!-- Output container (photos / collages) -->
     <div id="output"></div>
   </div>
 
+  <!-- Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js')
@@ -33,11 +41,12 @@
     }
   </script>
 
-  <!-- Hidden Admin Panel -->
+  <!-- Admin unlock button -->
   <button id="adminUnlock" style="position:fixed; bottom:10px; right:10px; opacity:0.2;">
     Admin
   </button>
 
+  <!-- Admin Panel (hidden until unlocked) -->
   <div id="adminPanel" style="display:none; margin-top:20px;">
     <h3>Admin Settings</h3>
 
