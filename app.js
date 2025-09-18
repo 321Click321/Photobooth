@@ -228,19 +228,13 @@ retakeBtn.addEventListener("click", () => {
 adminUnlockBtn.addEventListener("click", () => {
   const pass = prompt("Enter admin password:");
   if (pass === "1234") {
-    adminPanel.style.display = adminPanel.style.display === "block" ? "none" : "block";
+    adminPanel.style.display = "block";
   } else if (pass !== null) {
     alert("Wrong password");
   }
 });
-// Close Admin Panel button
-const closeAdminBtn = document.getElementById("closeAdmin");
-if (closeAdminBtn) {
-  closeAdminBtn.addEventListener("click", () => {
-    adminPanel.style.display = "none";
-  });
-}
-// Close Admin Panel button
+
+// ---------- Close Admin Panel button ----------
 const closeAdminBtn = document.getElementById("closeAdmin");
 if (closeAdminBtn) {
   closeAdminBtn.addEventListener("click", () => {
