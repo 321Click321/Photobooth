@@ -1,142 +1,78 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Photo Booth</title>
-  <script defer src="app.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>321Click Photo Booth</title>
+
   <style>
-    body {
-      background: #111;
-      color: white;
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin: 0;
-      padding: 0;
-    }
-
-    h1 { margin: 20px; }
-
-    video {
-      width: 100%;
-      max-width: 400px;
-      border: 4px solid white;
-      border-radius: 8px;
-    }
-
-    button {
-      margin: 10px;
-      padding: 10px 20px;
-      font-size: 18px;
-      border: none;
-      border-radius: 5px;
-      background: #007bff; /* BLUE not green */
-      color: white;
-      cursor: pointer;
-    }
-
-    button:hover { background: #0056b3; }
-
-    #countdown {
-      font-size: 48px;
-      margin: 20px;
-      display: none;
-    }
-
-    #output img {
-      margin: 10px;
-      max-width: 90%;
-      border: 4px solid white;
-      border-radius: 8px;
-    }
-
-    .download-btn {
-      display: inline-block;
-      margin: 15px;
-      padding: 10px 20px;
-      background: #28a745;
-      color: white;
-      text-decoration: none;
-      border-radius: 5px;
-      font-size: 18px;
-    }
-
-    #adminUnlock {
-      position: fixed;
-      bottom: 10px;
-      right: 10px;
-      opacity: 0.2;
-    }
-
-    #adminPanel {
-      display: none;
-      position: fixed;
-      top: 10%;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #222;
-      color: white;
-      padding: 20px;
-      border: 2px solid #fff;
-      border-radius: 10px;
-      z-index: 9999;
-      width: 300px;
-      text-align: left;
-    }
-
-    #adminPanel label {
-      display: block;
-      margin-top: 10px;
-    }
-
-    #adminPanel input {
-      margin-top: 5px;
-      padding: 5px;
-      width: 100%;
-    }
-
-    #closeAdmin {
-      background: red;
-      margin-top: 15px;
-      width: 100%;
-    }
+    :root { --bg:#111; --accent:#007bff; --muted:#ccc; --panel:#222; }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,system-ui,-apple-system;background:var(--bg);color:#fff;text-align:center}
+    .booth{max-width:900px;margin:0 auto;padding:18px}
+    h1{margin:6px 0 14px 0}
+    video{width:100%;max-width:720px;border-radius:10px;border:4px solid #333;background:#000;display:block;margin:0 auto}
+    .controls{margin-top:12px}
+    button{cursor:pointer;border:0;border-radius:8px;padding:10px 16px;font-size:16px;background:var(--accent);color:#fff;margin:6px}
+    button:hover{filter:brightness(.95)}
+    #retake{background:#666}
+    #countdown{font-size:64px;color:#ff6b6b;margin:18px 0;display:none}
+    #output{margin-top:12px; min-height:40px; display:flex;align-items:center;justify-content:center; flex-direction:column; padding:8px; transition:background-color .15s, border .15s}
+    #output img{max-width:92%; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.6)}
+    .download-btn{display:inline-block;margin-top:12px;padding:10px 18px;background:#28a745;color:#fff;border-radius:8px;text-decoration:none}
+    #adminUnlock{position:fixed;bottom:10px;right:10px;opacity:0.18;background:#111;color:#fff;padding:8px;border-radius:6px;border:1px solid #333}
+    #adminPanel{display:none;position:fixed;left:50%;top:10%;transform:translateX(-50%);background:var(--panel);color:#fff;padding:14px;border-radius:10px;border:1px solid #444;z-index:99999;width:320px}
+    #adminPanel h3{margin:0 0 8px 0;color:#66aaff}
+    #adminPanel label{display:block;margin-top:8px;font-size:14px}
+    #adminPanel input[type="number"], #adminPanel input[type="color"]{width:100%;padding:6px;margin-top:6px;border-radius:6px;border:1px solid #555;background:#333;color:#fff}
+    #adminPanel .row{display:flex;gap:8px}
+    #closeAdmin{background:#c0392b;margin-top:12px;width:100%}
+    /* ensure admin is always above output */
+    #adminPanel { z-index: 99999; }
   </style>
+
+  <script defer src="app.js"></script>
 </head>
 <body>
-  <div class="booth">
+  <main class="booth">
     <h1>📸 321Click Photo Booth</h1>
-    <video id="video" autoplay playsinline></video>
 
-    <div>
+    <video id="video" autoplay playsinline muted></video>
+
+    <div class="controls">
       <button id="single">Single Photo</button>
       <button id="multi">Multi-Photo Session</button>
-      <button id="retake" style="display:none;">🔄 Retake</button>
+      <button id="retake" style="display:none">🔄 Retake</button>
     </div>
 
-    <div id="countdown"></div>
-    <canvas id="canvas" style="display:none;"></canvas>
-    <div id="output"></div>
-  </div>
+    <div id="countdown" aria-hidden="true"></div>
 
-  <button id="adminUnlock">Admin</button>
+    <canvas id="canvas" style="display:none"></canvas>
+    <div id="output" aria-live="polite"></div>
+  </main>
 
-  <div id="adminPanel">
+  <button id="adminUnlock" aria-label="admin unlock">⚙️</button>
+
+  <aside id="adminPanel" role="dialog" aria-hidden="true">
     <h3>Admin Settings</h3>
 
     <label for="numShots">Number of photos per session:</label>
-    <input type="number" id="numShots" value="4" min="1" max="6">
+    <input id="numShots" type="number" min="1" max="6" value="4">
 
     <label for="countdownTime">Countdown (seconds):</label>
-    <input type="number" id="countdownTime" value="3" min="1" max="10">
+    <input id="countdownTime" type="number" min="1" max="10" value="3">
 
-    <label for="templateColor">Background Color:</label>
-    <input type="color" id="templateColor" value="#ffffff">
+    <label for="templateColor">Background color (live):</label>
+    <input id="templateColor" type="color" value="#ffffff">
 
-    <label for="frameColor">Frame Color:</label>
-    <input type="color" id="frameColor" value="#000000">
+    <label for="frameColor">Frame color (live):</label>
+    <input id="frameColor" type="color" value="#000000">
 
-    <button id="updatePreview">Update Preview</button>
+    <div class="row" style="margin-top:10px">
+      <button id="updatePreview" style="flex:1;background:#0066cc">Apply Now</button>
+    </div>
+
     <button id="closeAdmin">Close</button>
-  </div>
+  </aside>
 </body>
 </html>
