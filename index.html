@@ -11,25 +11,18 @@
 <body>
   <div class="booth">
     <h1>📸 321Click Photo Booth</h1>
-
-    <!-- Live camera feed -->
     <video id="video" autoplay playsinline></video>
 
-    <!-- Main controls -->
     <div>
       <button id="single">Single Photo</button>
       <button id="multi">Multi-Photo Session</button>
-      <button id="retake" style="display:none;">Retake</button>
     </div>
 
-    <!-- Countdown text -->
     <div id="countdown" style="font-size:48px; margin:20px; display:none;"></div>
-
-    <!-- Hidden canvas for captures -->
     <canvas id="canvas" style="display:none;"></canvas>
-
-    <!-- Output container (photos / collages) -->
     <div id="output"></div>
+
+    <button id="retake" style="display:none; margin-top:20px;">Retake</button>
   </div>
 
   <!-- Service Worker -->
@@ -41,12 +34,12 @@
     }
   </script>
 
-  <!-- Admin unlock button -->
+  <!-- Admin button -->
   <button id="adminUnlock" style="position:fixed; bottom:10px; right:10px; opacity:0.2;">
     Admin
   </button>
 
-  <!-- Admin Panel (hidden until unlocked) -->
+  <!-- Admin Panel -->
   <div id="adminPanel" style="display:none; margin-top:20px; border:1px solid #ccc; padding:10px; background:#f9f9f9;">
     <h3>Admin Settings</h3>
 
@@ -58,7 +51,6 @@
     <input type="number" id="countdownTime" value="3" min="1" max="10">
     <br><br>
 
-    <!-- Close Button -->
     <button id="closeAdmin">Close Admin Panel</button>
   </div>
 </body>
