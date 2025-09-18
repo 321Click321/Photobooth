@@ -1,180 +1,305 @@
-const video = document.getElementById("video");
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-const output = document.getElementById("output");
+// app.js — photobooth with clear/retake/download, multi thumbnails, 4x6 postcard compose + scaling
+document.addEventListener('DOMContentLoaded', () => {
+  // Elements
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const output = document.getElementById('output');
+  const countdownEl = document.getElementById('countdown');
 
-let capturedPhotos = [];
-let isMulti = false;
-let numShots = 4;
-let countdownTime = 3;
-let lastSettings = { bg: "#ffffff", frame: "#000000", scale: 100 };
+  const singleBtn = document.getElementById('single');
+  const multiBtn = document.getElementById('multi');
+  const menu = document.getElementById('menu');
 
-// Start camera
-navigator.mediaDevices.getUserMedia({ video: true })
-  .then(stream => { video.srcObject = stream; })
-  .catch(err => console.error("Camera error:", err));
+  const adminUnlock = document.getElementById('adminUnlock');
+  const adminPanel = document.getElementById('adminPanel');
+  const closeAdmin = document.getElementById('closeAdmin');
 
-// Countdown helper
-function startCountdown(cb) {
-  let countdown = countdownTime;
-  const countdownEl = document.getElementById("countdown");
-  countdownEl.style.display = "block";
-  countdownEl.innerText = countdown;
-  const interval = setInterval(() => {
-    countdown--;
-    if (countdown > 0) {
-      countdownEl.innerText = countdown;
-    } else {
-      clearInterval(interval);
-      countdownEl.style.display = "none";
-      cb();
+  const numShotsInput = document.getElementById('numShots');
+  const countdownInput = document.getElementById('countdownTime');
+  const bgColorInput = document.getElementById('bgColor');
+  const frameColorInput = document.getElementById('frameColor');
+  const photoScaleInput = document.getElementById('photoScale');
+
+  // State
+  let capturedPhotos = [];
+  let lastSettings = { bg: '#ffffff', frame: '#000000', scale: 100 };
+  let adminUnlocked = false;
+
+  // Utilities
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  async function startCamera() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      video.srcObject = stream;
+      await new Promise(resolve => {
+        if (video.readyState >= 2) return resolve();
+        video.onloadedmetadata = () => resolve();
+      });
+      video.play().catch(()=>{/* autoplay may be blocked, ignore */});
+    } catch (e) {
+      console.error('Camera start error:', e);
+      alert('Camera access required. Please allow camera permissions in Safari settings.');
     }
-  }, 1000);
-}
+  }
+  startCamera();
 
-// Capture single shot
-function takePhoto() {
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-  return canvas.toDataURL("image/png");
-}
-
-// Multi-session handler
-function startSession(multi) {
-  isMulti = multi;
-  capturedPhotos = [];
-  if (isMulti) {
-    captureMulti(0);
-  } else {
-    startCountdown(() => {
-      const photo = takePhoto();
-      capturedPhotos.push(photo);
-      finishSession();
+  // Countdown (returns Promise)
+  function startCountdown(seconds) {
+    return new Promise(resolve => {
+      countdownEl.style.display = 'block';
+      countdownEl.textContent = seconds;
+      let s = seconds;
+      const t = setInterval(() => {
+        s--;
+        if (s > 0) {
+          countdownEl.textContent = s;
+        } else {
+          clearInterval(t);
+          countdownEl.style.display = 'none';
+          resolve();
+        }
+      }, 1000);
     });
   }
-}
 
-function captureMulti(i) {
-  if (i >= numShots) {
-    finishSession();
-    return;
+  // Capture frame -> dataURL
+  async function captureFrame() {
+    // ensure video dimensions ready
+    let tries = 0;
+    while ((video.videoWidth === 0 || video.videoHeight === 0) && tries < 8) {
+      await sleep(60);
+      tries++;
+    }
+    const w = video.videoWidth || 1280;
+    const h = video.videoHeight || 720;
+    canvas.width = w;
+    canvas.height = h;
+    ctx.drawImage(video, 0, 0, w, h);
+    return canvas.toDataURL('image/png');
   }
-  startCountdown(() => {
-    const photo = takePhoto();
-    capturedPhotos.push(photo);
 
-    // Show live preview
-    const img = document.createElement("img");
-    img.src = photo;
-    img.style.width = "120px";
-    img.style.margin = "5px";
-    output.appendChild(img);
+  // Live preview style (admin color choices)
+  function updateLivePreviewStyle() {
+    const bg = bgColorInput.value || '#ffffff';
+    const frame = frameColorInput.value || '#000000';
+    output.style.backgroundColor = bg;
+    output.style.border = `12px solid ${frame}`;
+  }
+  // init live preview
+  updateLivePreviewStyle();
+  bgColorInput.addEventListener('input', updateLivePreviewStyle);
+  frameColorInput.addEventListener('input', updateLivePreviewStyle);
 
-    setTimeout(() => captureMulti(i + 1), 500);
+  // Single flow
+  singleBtn.addEventListener('click', async () => {
+    menu.style.display = 'none';
+    capturedPhotos = [];
+    const seconds = parseInt(countdownInput.value, 10) || 3;
+    await startCountdown(seconds);
+    await sleep(60);
+    const data = await captureFrame();
+    capturedPhotos = [data];
+    // Show single preview (not postcard)
+    showSingle(data);
   });
-}
 
-// Final postcard creation
-function finishSession() {
-  const bg = document.getElementById("bgColor").value;
-  const frame = document.getElementById("frameColor").value;
-  const scale = parseInt(document.getElementById("photoScale").value, 10) || 100;
-  lastSettings = { bg, frame, scale };
+  // Multi flow: live thumbnails + final postcard
+  multiBtn.addEventListener('click', async () => {
+    menu.style.display = 'none';
+    output.innerHTML = '';
+    capturedPhotos = [];
+    const shots = parseInt(numShotsInput.value, 10) || 4;
+    const seconds = parseInt(countdownInput.value, 10) || 3;
 
-  const postcard = composePostcard(capturedPhotos, lastSettings);
-  showFinal(postcard);
-}
+    for (let i = 0; i < shots; i++) {
+      await startCountdown(seconds);
+      await sleep(80);
+      const data = await captureFrame();
+      capturedPhotos.push(data);
+      // thumbnail preview
+      const thumb = new Image();
+      thumb.src = data;
+      thumb.className = 'thumb';
+      output.appendChild(thumb);
+      await sleep(200);
+    }
 
-// Compose postcard with scaling
-function composePostcard(photos, settings) {
-  const w = 1200, h = 1800; // 4x6 ratio
-  const postcardCanvas = document.createElement("canvas");
-  postcardCanvas.width = w;
-  postcardCanvas.height = h;
-  const pctx = postcardCanvas.getContext("2d");
+    // compose postcard using current admin settings
+    const settings = {
+      bg: bgColorInput.value || '#ffffff',
+      frame: frameColorInput.value || '#000000',
+      scale: parseInt(photoScaleInput.value, 10) || 100
+    };
+    lastSettings = settings;
+    const resultCanvas = await composePostcard(capturedPhotos, settings);
+    showFinal(resultCanvas);
+  });
 
-  // Background
-  pctx.fillStyle = settings.bg;
-  pctx.fillRect(0, 0, w, h);
+  // Take photo helper used for retake or future automation
+  async function takePhotoForMode(mode = 'single') {
+    const seconds = parseInt(countdownInput.value, 10) || 3;
+    await startCountdown(seconds);
+    await sleep(60);
+    const data = await captureFrame();
+    return data;
+  }
 
-  // Outer border
-  pctx.strokeStyle = settings.frame;
-  pctx.lineWidth = 30;
-  pctx.strokeRect(0, 0, w, h);
+  // Compose postcard (async) — returns canvas
+  async function composePostcard(images, settings) {
+    const outW = 1200, outH = 1800; // print canvas
+    const out = document.createElement('canvas');
+    out.width = outW;
+    out.height = outH;
+    const ct = out.getContext('2d');
 
-  // Grid layout
-  const cols = 2;
-  const rows = Math.ceil(photos.length / cols);
-  const photoW = w / cols - 40;
-  const photoH = h / rows - 40;
+    // background + outer frame
+    ct.fillStyle = settings.bg || '#fff';
+    ct.fillRect(0,0,outW,outH);
+    ct.lineWidth = 30;
+    ct.strokeStyle = settings.frame || '#000';
+    ct.strokeRect(0,0,outW,outH);
 
-  photos.forEach((src, i) => {
-    const img = new Image();
-    img.src = src;
-    const col = i % cols;
-    const row = Math.floor(i / cols);
+    const cols = 2;
+    const rows = Math.ceil(images.length / cols) || 1;
+    const cellW = outW / cols;
+    const cellH = outH / rows;
+    const slotPadding = 40;
+    const slotW = cellW - slotPadding;
+    const slotH = cellH - slotPadding;
 
-    img.onload = () => {
-      const x = col * (photoW + 40) + 20;
-      const y = row * (photoH + 40) + 20;
+    // load all images
+    const loaded = await Promise.all(images.map(src => new Promise(res => {
+      const im = new Image();
+      im.onload = () => res(im);
+      im.onerror = () => res(im);
+      im.src = src;
+    })));
 
-      const scaleFactor = settings.scale / 100;
+    for (let i = 0; i < loaded.length; i++) {
+      const im = loaded[i];
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const x = col * cellW + slotPadding/2;
+      const y = row * cellH + slotPadding/2;
+
+      // desired draw area (slot)
+      const photoW = slotW;
+      const photoH = slotH;
+
+      // apply scale (zoom) centered inside slot
+      const scaleFactor = (settings.scale || 100) / 100;
       const drawW = photoW * scaleFactor;
       const drawH = photoH * scaleFactor;
-      const offsetX = x + (photoW - drawW) / 2;
-      const offsetY = y + (photoH - drawH) / 2;
+      const destX = x + (photoW - drawW)/2;
+      const destY = y + (photoH - drawH)/2;
 
-      pctx.drawImage(img, offsetX, offsetY, drawW, drawH);
+      // center-crop source to cover drawW x drawH (cover)
+      const ratio = Math.max(drawW / im.width, drawH / im.height);
+      const srcW = Math.round(drawW / ratio);
+      const srcH = Math.round(drawH / ratio);
+      const sx = Math.max(0, Math.round((im.width - srcW)/2));
+      const sy = Math.max(0, Math.round((im.height - srcH)/2));
 
-      // Slot frame
-      pctx.strokeStyle = settings.frame;
-      pctx.lineWidth = 15;
-      pctx.strokeRect(x, y, photoW, photoH);
-    };
-  });
+      ct.drawImage(im, sx, sy, srcW, srcH, destX, destY, drawW, drawH);
 
-  return postcardCanvas;
-}
+      // slot frame inside
+      ct.lineWidth = 12;
+      ct.strokeStyle = settings.frame || '#000';
+      ct.strokeRect(x, y, photoW, photoH);
+    }
 
-// Show final output
-function showFinal(canvasEl) {
-  output.innerHTML = "";
-  output.appendChild(canvasEl);
-
-  // Download button
-  const dl = document.createElement("a");
-  dl.innerText = "Download Photo";
-  dl.href = canvasEl.toDataURL("image/png");
-  dl.download = "photobooth.png";
-  dl.className = "downloadBtn";
-  output.appendChild(dl);
-
-  // Retake options
-  const retake = document.createElement("button");
-  retake.innerText = "Retake";
-  retake.onclick = () => {
-    output.innerHTML = "";
-  };
-  output.appendChild(retake);
-}
-
-// Event listeners
-document.getElementById("single").onclick = () => startSession(false);
-document.getElementById("multi").onclick = () => {
-  numShots = parseInt(document.getElementById("numShots").value, 10);
-  startSession(true);
-};
-
-// Admin toggle
-document.getElementById("adminUnlock").onclick = () => {
-  const pass = prompt("Enter Admin Password:");
-  if (pass === "321click") {
-    document.getElementById("adminPanel").style.display = "block";
-  } else {
-    alert("Wrong password!");
+    return out;
   }
-};
-document.getElementById("closeAdmin").onclick = () => {
-  document.getElementById("adminPanel").style.display = "none";
-};
+
+  // Show single preview (not a postcard): include download/clear/retake
+  function showSingle(dataUrl) {
+    output.innerHTML = '';
+    const img = new Image();
+    img.src = dataUrl;
+    img.className = 'singlePreview';
+    output.appendChild(img);
+
+    // controls
+    const controls = document.createElement('div');
+    controls.className = 'controlsRow';
+
+    // Download (anchor)
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = 'photobooth.png';
+    a.className = 'downloadBtn';
+    a.textContent = 'Download';
+    controls.appendChild(a);
+
+    // Retake (shows menu)
+    const retake = document.createElement('button');
+    retake.textContent = 'Retake';
+    retake.onclick = () => { output.innerHTML=''; menu.style.display='block'; };
+    controls.appendChild(retake);
+
+    // Clear (same behavior: clear + show menu)
+    const clear = document.createElement('button');
+    clear.textContent = 'Clear';
+    clear.onclick = () => { output.innerHTML=''; menu.style.display='block'; };
+    controls.appendChild(clear);
+
+    output.appendChild(controls);
+    menu.style.display = 'none';
+  }
+
+  // Show final postcard canvas (with download/retake/clear)
+  function showFinal(canvasEl) {
+    output.innerHTML = '';
+    canvasEl.className = 'finalPhoto';
+    output.appendChild(canvasEl);
+
+    const controls = document.createElement('div');
+    controls.className = 'controlsRow';
+
+    // Download anchor styled like a button
+    const dl = document.createElement('a');
+    dl.href = canvasEl.toDataURL('image/png');
+    dl.download = 'photobooth.png';
+    dl.textContent = 'Download';
+    dl.className = 'downloadBtn';
+    controls.appendChild(dl);
+
+    // Retake -> show menu so guest can choose
+    const retake = document.createElement('button');
+    retake.textContent = 'Retake';
+    retake.onclick = () => { output.innerHTML=''; menu.style.display='block'; };
+    controls.appendChild(retake);
+
+    // Clear -> same as retake but also clears settings? (keeps admin settings)
+    const clear = document.createElement('button');
+    clear.textContent = 'Clear';
+    clear.onclick = () => { output.innerHTML=''; capturedPhotos = []; menu.style.display='block'; };
+    controls.appendChild(clear);
+
+    output.appendChild(controls);
+    menu.style.display = 'none';
+  }
+
+  // Admin unlock (one-time per session)
+  adminUnlock.addEventListener('click', () => {
+    if (adminUnlocked) {
+      adminPanel.style.display = adminPanel.style.display === 'block' ? 'none' : 'block';
+      return;
+    }
+    const pass = prompt('Enter admin password:');
+    if (pass === '1234') {
+      adminUnlocked = true;
+      adminPanel.style.display = 'block';
+    } else if (pass !== null) {
+      alert('Wrong password');
+    }
+  });
+  closeAdmin.addEventListener('click', () => adminPanel.style.display = 'none');
+
+  // keep admin changes live for preview area
+  numShotsInput.addEventListener('input', () => {}); // handled when starting multi
+  countdownInput.addEventListener('input', () => { /* live update countdown value */ });
+  photoScaleInput.addEventListener('input', () => {}); // used during compose
+});
