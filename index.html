@@ -1,103 +1,52 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>321Click Photo Booth</title>
-  <link rel="stylesheet" href="styles.css" />
-  <link rel="manifest" href="manifest.json" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Photo Booth</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="app.js"></script>
+  <link rel="manifest" href="manifest.json">
 </head>
 <body>
-  <main class="booth" role="main">
-    <header>
-      <h1>📸 321Click Photo Booth</h1>
-    </header>
+  <div class="booth">
+    <h1>📸 321Click Photo Booth</h1>
+    <video id="video" autoplay playsinline></video>
 
-    <section class="controls">
-      <div class="mode-buttons">
-        <button id="single" class="btn">Single Photo</button>
-        <button id="multi" class="btn primary">Multi-Photo Session</button>
-      </div>
-
-      <div class="toolbar">
-        <label for="templateSelect">Template:</label>
-        <select id="templateSelect">
-          <option value="strip">Strip (4-up, portrait)</option>
-          <option value="grid">2×2 Grid</option>
-          <option value="single4x6">Single 4×6</option>
-        </select>
-
-        <button id="retake" class="btn" style="display:none">Retake</button>
-      </div>
-    </section>
-
-    <div id="countdown" class="countdown" aria-hidden="true"></div>
-
-    <section class="camera-area">
-      <video id="video" autoplay playsinline muted></video>
-      <canvas id="captureCanvas" style="display:none"></canvas>
-    </section>
-
-    <section id="output" class="output"></section>
-
-    <footer class="hint">
-      <p>Add to Home Screen for full-screen experience (Share → Add to Home Screen).</p>
-    </footer>
-  </main>
-
-  <!-- semi-hidden admin unlock -->
-  <button id="adminUnlock" class="admin-unlock" aria-label="admin unlock">⚙️</button>
-
-  <!-- admin panel -->
-  <aside id="adminPanel" class="admin-panel" aria-hidden="true">
-    <h3>Admin Settings</h3>
-    <label>Number of shots:
-      <input type="number" id="numShots" value="4" min="1" max="6">
-    </label>
-    <label>Countdown (s):
-      <input type="number" id="countdownTime" value="3" min="1" max="10">
-    </label>
-    <label>Template:
-      <select id="adminTemplate">
-        <option value="strip">Strip (4-up)</option>
-        <option value="grid">2×2</option>
-        <option value="single4x6">Single 4×6</option>
-      </select>
-    </label>
-    <label>Logo (optional):
-      <input type="file" id="logoUpload" accept="image/*">
-    </label>
-    <div class="logo-controls">
-      <label>Logo scale (%) <input id="logoScale" type="range" min="10" max="100" value="25"></label>
-      <label>Logo pos:
-        <select id="logoPos">
-          <option value="bottom-right">Bottom Right</option>
-          <option value="bottom-left">Bottom Left</option>
-          <option value="top-right">Top Right</option>
-          <option value="top-left">Top Left</option>
-        </select>
-      </label>
+    <div>
+      <button id="single">Single Photo</button>
+      <button id="multi">Multi-Photo Session</button>
+      <button id="retake" style="display:none;">Retake</button>
     </div>
 
-    <div class="admin-actions">
-      <button id="saveSettings" class="btn">Save</button>
-      <button id="closeAdmin" class="btn">Close</button>
-    </div>
+    <div id="countdown" style="font-size:48px; margin:20px; display:none;"></div>
 
-    <p class="admin-note">Admin password: <strong>1234</strong></p>
-    <p class="admin-note">Tip: upload a transparent PNG logo for best print results.</p>
-  </aside>
+    <canvas id="canvas" style="display:none;"></canvas>
+    <div id="output"></div>
+  </div>
 
-  <script defer src="app.js"></script>
-
-  <!-- service worker registration -->
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js')
-        .then(r => console.log('SW reg', r.scope))
-        .catch(e => console.log('SW failed', e));
+        .then(reg => console.log('Service Worker registered:', reg))
+        .catch(err => console.log('Service Worker error:', err));
     }
   </script>
+
+  <!-- Hidden Admin Panel -->
+  <button id="adminUnlock" style="position:fixed; bottom:10px; right:10px; opacity:0.2;">
+    Admin
+  </button>
+
+  <div id="adminPanel" style="display:none; margin-top:20px;">
+    <h3>Admin Settings</h3>
+
+    <label for="numShots">Number of photos per session:</label>
+    <input type="number" id="numShots" value="4" min="1" max="6">
+    <br><br>
+
+    <label for="countdownTime">Countdown (seconds):</label>
+    <input type="number" id="countdownTime" value="3" min="1" max="10">
+  </div>
 </body>
 </html>
