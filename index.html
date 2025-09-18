@@ -47,7 +47,7 @@
   </button>
 
   <!-- Admin Panel (hidden until unlocked) -->
-  <div id="adminPanel" style="display:none; margin-top:20px;">
+  <div id="adminPanel" style="display:none; margin-top:20px; border:1px solid #ccc; padding:10px; background:#f9f9f9;">
     <h3>Admin Settings</h3>
 
     <label for="numShots">Number of photos per session:</label>
@@ -56,6 +56,10 @@
 
     <label for="countdownTime">Countdown (seconds):</label>
     <input type="number" id="countdownTime" value="3" min="1" max="10">
+    <br><br>
+
+    <!-- Close Button -->
+    <button id="closeAdmin">Close Admin Panel</button>
   </div>
 </body>
 </html>
