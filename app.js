@@ -93,8 +93,8 @@ function finishSession() {
   const rows = 2, cols = 2;
   const cellW = finalCanvas.width / cols;
   const cellH = finalCanvas.height / rows;
-  const photoW = cellW * 0.85;
-  const photoH = cellH * 0.85;
+  const photoW = cellW * 0.75;  // smaller so background shows clearly
+  const photoH = cellH * 0.75;
   const xOffset = (cellW - photoW) / 2;
   const yOffset = (cellH - photoH) / 2;
 
@@ -109,7 +109,7 @@ function finishSession() {
       fctx.drawImage(img, x, y, photoW, photoH);
 
       // Frame border
-      fctx.lineWidth = 12;
+      fctx.lineWidth = 20;  // thicker
       fctx.strokeStyle = frameColor;
       fctx.strokeRect(x, y, photoW, photoH);
 
