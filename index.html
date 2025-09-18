@@ -1,75 +1,73 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>321Click Photo Booth</title>
-
-  <!-- Inline critical stylesheet (so style works even if external CSS didn't load) -->
-  <style>
-    /* Inline critical styles */
-    :root{--bg:#111;--accent:#0066ff;--muted:#ccc}
-    *{box-sizing:border-box}
-    body{font-family:Arial,system-ui,-apple-system; margin:0; padding:0; background:var(--bg); color:#fff; text-align:center}
-    .booth{max-width:900px;margin:0 auto;padding:20px}
-    .booth h1{font-size:1.8rem;margin-bottom:12px}
-    #video{width:100%;max-width:720px;border-radius:10px;border:4px solid #333;background:#000;display:block;margin:0 auto 12px}
-    .controls{margin-bottom:8px}
-    button{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:10px 14px;margin:6px;font-size:16px;cursor:pointer}
-    button:hover{filter:brightness(.95)}
-    #countdown{font-size:64px;color:#ff5a5a;margin:12px 0;display:none}
-    #output{margin-top:12px}
-    #output img{max-width:100%;border-radius:8px;border:2px solid #222;box-shadow:0 6px 18px rgba(0,0,0,0.6)}
-    #adminUnlock{position:fixed;bottom:10px;right:10px;opacity:0.18;background:#222;color:#fff;padding:6px;border-radius:6px;border:1px solid #444}
-    #adminPanel{display:none;position:fixed;left:12px;top:12px;background:#222;border:1px solid #444;padding:12px;border-radius:8px;z-index:9999;max-width:320px}
-    #adminPanel h3{margin:0 0 8px 0;color:#66aaff}
-    #adminPanel input{width:60px;margin-left:8px}
-  </style>
-
-  <!-- keep external css link if you want - but inline above prevents blank UI -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Photo Booth</title>
   <link rel="stylesheet" href="styles.css">
   <script defer src="app.js"></script>
   <link rel="manifest" href="manifest.json">
+  <style>
+    /* Extra Admin Panel Fix for Safari/iPad */
+    #adminPanel {
+      background: #222 !important;
+      color: #fff !important;
+    }
+
+    #adminPanel label {
+      color: #fff !important;
+    }
+
+    #adminPanel input {
+      background: #333 !important;
+      color: #fff !important;
+      border: 1px solid #555 !important;
+      border-radius: 4px;
+      padding: 4px;
+    }
+  </style>
 </head>
 <body>
-  <main class="booth">
+  <div class="booth">
     <h1>📸 321Click Photo Booth</h1>
-
-    <video id="video" autoplay playsinline muted></video>
-
-    <div class="controls">
+    <video id="video" autoplay playsinline></video>
+    <div>
       <button id="single">Single Photo</button>
       <button id="multi">Multi-Photo Session</button>
-      <button id="retake" style="display:none">Retake</button>
+      <button id="retake" style="display:none;">🔄 Retake</button>
     </div>
-
-    <div id="countdown" aria-hidden="true"></div>
-
-    <canvas id="canvas" style="display:none"></canvas>
+    <div id="countdown" style="font-size:48px; margin:20px; display:none;"></div>
+    <canvas id="canvas" style="display:none;"></canvas>
     <div id="output"></div>
-  </main>
+  </div>
 
   <!-- Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(e => console.log('SW reg failed', e));
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => console.log('Service Worker registered:', reg))
+        .catch(err => console.log('Service Worker error:', err));
     }
   </script>
 
-  <!-- Admin -->
-  <button id="adminUnlock" aria-label="admin unlock">⚙️</button>
-
-  <div id="adminPanel" aria-hidden="true">
+  <!-- Admin Panel -->
+  <div id="adminPanel" style="display:none; margin-top:20px;">
     <h3>Admin Settings</h3>
-    <label>Number of photos:
-      <input id="numShots" type="number" min="1" max="6" value="4">
-    </label>
+
+    <label for="numShots">Number of photos per session:</label>
+    <input type="number" id="numShots" value="4" min="1" max="6">
     <br><br>
-    <label>Countdown (s):
-      <input id="countdownTime" type="number" min="1" max="10" value="3">
-    </label>
+
+    <label for="countdownTime">Countdown (seconds):</label>
+    <input type="number" id="countdownTime" value="3" min="1" max="10">
     <br><br>
+
     <button id="closeAdmin">Close Admin Panel</button>
   </div>
+
+  <!-- Hidden Admin Unlock Button -->
+  <button id="adminUnlock" style="position:fixed; bottom:10px; right:10px; opacity:0.2;">
+    Admin
+  </button>
 </body>
 </html>
