@@ -233,7 +233,13 @@ adminUnlockBtn.addEventListener("click", () => {
     alert("Wrong password");
   }
 });
-
+// Close Admin Panel button
+const closeAdminBtn = document.getElementById("closeAdmin");
+if (closeAdminBtn) {
+  closeAdminBtn.addEventListener("click", () => {
+    adminPanel.style.display = "none";
+  });
+}
 // ---------- Admin inputs update live ----------
 if (numShotsInput) {
   numShotsInput.addEventListener("input", (e) => {
