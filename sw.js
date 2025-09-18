@@ -1,4 +1,5 @@
-const CACHE_NAME = 'pb-cache-v1';
+// Simple SW with bumped cache name to force a refresh when deployed
+const CACHE_NAME = 'pb-cache-v2'; // changed version -> forces update
 const ASSETS = [
   'index.html',
   'styles.css',
@@ -14,7 +15,12 @@ self.addEventListener('install', evt => {
 });
 
 self.addEventListener('activate', evt => {
-  evt.waitUntil(self.clients.claim());
+  evt.waitUntil(
+    caches.keys().then(keys => Promise.all(
+      keys.map(k => (k !== CACHE_NAME ? caches.delete(k) : Promise.resolve()))
+    ))
+  );
+  self.clients.claim();
 });
 
 self.addEventListener('fetch', evt => {
