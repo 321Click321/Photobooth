@@ -8,120 +8,88 @@ const multiBtn = document.getElementById("multi");
 const retakeBtn = document.getElementById("retake");
 const countdownEl = document.getElementById("countdown");
 
-const adminPanel = document.getElementById("adminPanel");
-const adminUnlockBtn = document.getElementById("adminUnlock");
-const closeAdminBtn = document.getElementById("closeAdmin");
-
 let capturedPhotos = [];
-let isMulti = false;
 let numShots = 4;
 let countdownTime = 3;
 
-// Access camera
+// Start camera
 navigator.mediaDevices.getUserMedia({ video: true })
-  .then(stream => {
-    video.srcObject = stream;
-  })
+  .then(stream => video.srcObject = stream)
   .catch(err => console.error("Camera error:", err));
 
-// Countdown
-function countdown(cb) {
-  let timeLeft = countdownTime;
+// Countdown function
+function startCountdown(seconds, callback) {
   countdownEl.style.display = "block";
-  countdownEl.textContent = timeLeft;
+  countdownEl.textContent = seconds;
+  let counter = seconds;
 
-  const timer = setInterval(() => {
-    timeLeft--;
-    if (timeLeft <= 0) {
-      clearInterval(timer);
-      countdownEl.style.display = "none";
-      cb();
+  const interval = setInterval(() => {
+    counter--;
+    if (counter > 0) {
+      countdownEl.textContent = counter;
     } else {
-      countdownEl.textContent = timeLeft;
+      clearInterval(interval);
+      countdownEl.style.display = "none";
+      callback();
     }
   }, 1000);
 }
 
-// Take photo
-function takePhoto(cb) {
+// Capture a photo
+function capturePhoto() {
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-  const dataUrl = canvas.toDataURL("image/png");
-  capturedPhotos.push(dataUrl);
-  cb && cb(dataUrl);
+  return canvas.toDataURL("image/png");
 }
 
-// Start single photo
+// Single photo
 singleBtn.addEventListener("click", () => {
-  isMulti = false;
-  capturedPhotos = [];
-  countdown(() => {
-    takePhoto(photo => {
-      showPreview(photo);
-    });
+  startCountdown(countdownTime, () => {
+    output.innerHTML = "";
+    const photo = capturePhoto();
+    const img = new Image();
+    img.src = photo;
+    output.appendChild(img);
+    retakeBtn.style.display = "inline-block";
   });
 });
 
-// Start multi-photo
+// Multi photo session
 multiBtn.addEventListener("click", () => {
-  isMulti = true;
   capturedPhotos = [];
-  let shotsTaken = 0;
+  takeNextPhoto(0);
+});
 
-  function takeNext() {
-    countdown(() => {
-      takePhoto(() => {
-        shotsTaken++;
-        if (shotsTaken < numShots) {
-          setTimeout(takeNext, 500);
-        } else {
-          finishSession();
-        }
-      });
+function takeNextPhoto(i) {
+  if (i < numShots) {
+    startCountdown(countdownTime, () => {
+      const photo = capturePhoto();
+      capturedPhotos.push(photo);
+      takeNextPhoto(i + 1);
     });
+  } else {
+    finishSession();
   }
-
-  takeNext();
-});
-
-// Retake
-retakeBtn.addEventListener("click", () => {
-  output.innerHTML = "";
-  capturedPhotos = [];
-  singleBtn.disabled = false;
-  multiBtn.disabled = false;
-  retakeBtn.style.display = "none";
-});
-
-// Show preview for single photo
-function showPreview(photo) {
-  output.innerHTML = "";
-  const img = new Image();
-  img.src = photo;
-  output.appendChild(img);
-
-  retakeBtn.style.display = "inline-block";
 }
 
-// Finish multi-session: create postcard layout
+// Finish session and build collage
 function finishSession() {
   output.innerHTML = "";
 
   const finalCanvas = document.createElement("canvas");
-  finalCanvas.width = 1200;  // 4x6 postcard (portrait)
+  finalCanvas.width = 1200;
   finalCanvas.height = 1800;
   const fctx = finalCanvas.getContext("2d");
 
-  // Background color from admin
+  // Colors from admin
   const bgColor = document.getElementById("templateColor")?.value || "#ffffff";
+  const frameColor = document.getElementById("frameColor")?.value || "#000000";
+
+  // Draw background
   fctx.fillStyle = bgColor;
   fctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
 
-  // Frame color from admin
-  const frameColor = document.getElementById("frameColor")?.value || "#ffffff";
-
-  // Place photos in 2x2 grid with padding
   const rows = 2, cols = 2;
   const cellW = finalCanvas.width / cols;
   const cellH = finalCanvas.height / rows;
@@ -138,27 +106,16 @@ function finishSession() {
       const x = (i % cols) * cellW + xOffset;
       const y = Math.floor(i / cols) * cellH + yOffset;
 
-      // Draw photo
       fctx.drawImage(img, x, y, photoW, photoH);
 
-      // Draw frame
-      fctx.lineWidth = 8;
+      // Frame border
+      fctx.lineWidth = 12;
       fctx.strokeStyle = frameColor;
       fctx.strokeRect(x, y, photoW, photoH);
 
       loaded++;
       if (loaded === capturedPhotos.length) {
-        const finalImg = new Image();
-        finalImg.src = finalCanvas.toDataURL("image/png");
-        output.appendChild(finalImg);
-
-        // Download button
-        const downloadBtn = document.createElement("a");
-        downloadBtn.textContent = "⬇️ Download Photo";
-        downloadBtn.href = finalImg.src;
-        downloadBtn.download = "photobooth.png";
-        downloadBtn.className = "download-btn";
-        output.appendChild(downloadBtn);
+        showFinalCollage(finalCanvas);
       }
     };
   });
@@ -169,26 +126,59 @@ function finishSession() {
   retakeBtn.style.display = "inline-block";
 }
 
-// ---------- Admin unlock ----------
-adminUnlockBtn.addEventListener("click", () => {
-  const pass = prompt("Enter admin password:");
+// Show final collage with download
+function showFinalCollage(canvasObj) {
+  output.innerHTML = "";
+  const finalImg = new Image();
+  finalImg.src = canvasObj.toDataURL("image/png");
+  output.appendChild(finalImg);
+
+  const downloadBtn = document.createElement("a");
+  downloadBtn.textContent = "⬇️ Download Photo";
+  downloadBtn.href = finalImg.src;
+  downloadBtn.download = "photobooth.png";
+  downloadBtn.className = "download-btn";
+  output.appendChild(downloadBtn);
+
+  window.lastCanvas = canvasObj;
+}
+
+// Retake
+retakeBtn.addEventListener("click", () => {
+  output.innerHTML = "";
+  retakeBtn.style.display = "none";
+  capturedPhotos = [];
+});
+
+// Admin unlock
+const adminUnlock = document.getElementById("adminUnlock");
+const adminPanel = document.getElementById("adminPanel");
+const closeAdmin = document.getElementById("closeAdmin");
+
+adminUnlock.addEventListener("click", () => {
+  const pass = prompt("Enter Admin Password:");
   if (pass === "1234") {
     adminPanel.style.display = "block";
-  } else if (pass !== null) {
+  } else {
     alert("Wrong password");
   }
 });
 
-// ---------- Close Admin Panel ----------
-closeAdminBtn.addEventListener("click", () => {
+closeAdmin.addEventListener("click", () => {
   adminPanel.style.display = "none";
 });
 
-// ---------- Sync admin inputs ----------
+// Apply admin settings
 document.getElementById("numShots").addEventListener("input", e => {
-  numShots = parseInt(e.target.value) || 4;
+  numShots = parseInt(e.target.value);
 });
 
 document.getElementById("countdownTime").addEventListener("input", e => {
-  countdownTime = parseInt(e.target.value) || 3;
+  countdownTime = parseInt(e.target.value);
+});
+
+// Update preview manually
+document.getElementById("updatePreview").addEventListener("click", () => {
+  if (!window.lastCanvas) return alert("No photo session yet!");
+  finishSession();
 });
