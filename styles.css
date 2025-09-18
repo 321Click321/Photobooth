@@ -109,3 +109,18 @@ button:disabled {
   position: relative;
   z-index: 9999; /* always on top */
 }
+.download-btn {
+  display: inline-block;
+  margin-top: 15px;
+  padding: 12px 20px;
+  background: #4CAF50;
+  color: #fff;
+  text-decoration: none;
+  font-size: 18px;
+  border-radius: 8px;
+  transition: background 0.3s;
+}
+
+.download-btn:hover {
+  background: #45a049;
+}
