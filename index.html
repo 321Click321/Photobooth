@@ -1,65 +1,58 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>📸 321Click Photo Booth</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>321Click Photo Booth</title>
   <link rel="stylesheet" href="styles.css">
   <script defer src="app.js"></script>
-  <link rel="manifest" href="manifest.json">
 </head>
 <body>
-  <div class="booth">
+  <main class="booth">
     <h1>📸 321Click Photo Booth</h1>
-    <video id="video" autoplay playsinline></video>
 
-    <div>
+    <video id="video" autoplay playsinline muted></video>
+
+    <div id="menu" class="controls">
       <button id="single">Single Photo</button>
       <button id="multi">Multi-Photo Session</button>
     </div>
 
-    <div id="countdown" style="font-size:48px; margin:20px; display:none;"></div>
-    <canvas id="canvas" style="display:none;"></canvas>
-    <div id="output"></div>
-  </div>
+    <div id="countdown" aria-hidden="true"></div>
 
-  <button id="adminUnlock" style="position:fixed; bottom:10px; right:10px; opacity:0.3;">
-    Admin
-  </button>
+    <canvas id="canvas" style="display:none"></canvas>
 
-  <!-- Admin Panel -->
-  <div id="adminPanel" style="display:none; margin-top:20px; background:#222; color:white; padding:15px;">
+    <div id="output" aria-live="polite"></div>
+  </main>
+
+  <button id="adminUnlock" class="admin-btn" aria-label="admin">⚙️</button>
+
+  <aside id="adminPanel" class="admin-panel" role="dialog" aria-hidden="true">
     <h3>Admin Settings</h3>
 
-    <label for="numShots">Number of photos per session:</label>
-    <input type="number" id="numShots" value="4" min="1" max="6">
-    <br><br>
+    <label>Number of photos per session:
+      <input id="numShots" type="number" min="1" max="6" value="4">
+    </label>
 
-    <label for="countdownTime">Countdown (seconds):</label>
-    <input type="number" id="countdownTime" value="3" min="1" max="10">
-    <br><br>
+    <label>Countdown (seconds):
+      <input id="countdownTime" type="number" min="1" max="10" value="3">
+    </label>
 
-    <label for="bgColor">Background color:</label>
-    <input type="color" id="bgColor" value="#ffffff">
-    <br><br>
+    <label>Background color:
+      <input id="bgColor" type="color" value="#ffffff">
+    </label>
 
-    <label for="frameColor">Frame color:</label>
-    <input type="color" id="frameColor" value="#000000">
-    <br><br>
+    <label>Frame color:
+      <input id="frameColor" type="color" value="#000000">
+    </label>
 
-    <label for="photoScale">Photo Scale (%):</label>
-    <input type="number" id="photoScale" value="100" min="50" max="200">
-    <br><br>
+    <label>Photo Scale (%):
+      <input id="photoScale" type="number" min="50" max="200" value="100">
+    </label>
 
-    <button id="closeAdmin">Close</button>
-  </div>
-
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js')
-        .then(reg => console.log('Service Worker registered:', reg))
-        .catch(err => console.log('Service Worker error:', err));
-    }
-  </script>
+    <div style="margin-top:10px;">
+      <button id="closeAdmin" class="admin-close">Close</button>
+    </div>
+  </aside>
 </body>
 </html>
