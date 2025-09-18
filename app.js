@@ -133,12 +133,27 @@ function finishSession() {
     img.onload = () => {
       const x = (i % cols) * cellW + xOffset;
       const y = Math.floor(i / cols) * cellH + yOffset;
+
+      // Draw photo
       fctx.drawImage(img, x, y, photoW, photoH);
+
+      // Draw frame (border) around photo
+      fctx.lineWidth = 15; // thickness of frame
+      fctx.strokeStyle = "#000000"; // default black frame
+      fctx.strokeRect(x, y, photoW, photoH);
 
       if (i === capturedPhotos.length - 1) {
         const finalImg = new Image();
         finalImg.src = finalCanvas.toDataURL("image/png");
         output.appendChild(finalImg);
+
+        // Add Download button
+        const downloadBtn = document.createElement("a");
+        downloadBtn.textContent = "⬇️ Download Photo";
+        downloadBtn.href = finalImg.src;
+        downloadBtn.download = "photobooth.png";
+        downloadBtn.className = "download-btn";
+        output.appendChild(downloadBtn);
       }
     };
   });
